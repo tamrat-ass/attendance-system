@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { sql } from '@vercel/postgres';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,23 +13,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Query user from database
-    const [users]: any = await db.query(
-      `SELECT id, username, email, full_name, role, status,
+    const result = await sql`
+      SELECT id, username, email, full_name, role, status,
        can_manage_students, can_add_student, can_update_student, can_upload_students, can_delete_student,
        can_mark_attendance, can_view_reports, can_export_data,
        can_manage_users, can_delete_user, can_manage_passwords
-       FROM users WHERE username = $1 AND password_hash = $2 AND status = $3`,
-      [username, password, 'active']
-    );
+       FROM users WHERE username = ${username} AND password_hash = ${password} AND status = 'active'
+    `;
 
-    if (users.length === 0) {
+    if (result.rows.length === 0) {
       return NextResponse.json(
         { success: false, message: 'Invalid username or password' },
         { status: 401 }
       );
     }
 
-    const user = users[0];
+    const user = result.rows[0];
 
     // Log the login action
     try {
@@ -37,11 +36,10 @@ export async function POST(request: NextRequest) {
                          request.headers.get('x-real-ip') || 
                          'unknown';
       
-      await db.query(
-        `INSERT INTO user_logs (user_id, username, action, details, ip_address) 
-         VALUES ($1, $2, $3, $4, $5)`,
-        [user.id, user.username, 'LOGIN', `User logged in (${user.role})`, ip_address]
-      );
+      await sql`
+        INSERT INTO user_logs (user_id, username, action, details, ip_address) 
+        VALUES (${user.id}, ${user.username}, 'LOGIN', ${`User logged in (${user.role})`}, ${ip_address})
+      `;
     } catch (logError) {
       console.error('Failed to log login:', logError);
     }
@@ -71,7 +69,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { success: false, message: 'Login failed' },
+      { success: false, message: 'Login failed - updated' },
       { status: 500 }
     );
   }
