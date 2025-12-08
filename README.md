@@ -1,2 +1,2 @@
-# attendance_system
-this attendacne is for the test diployment
+# attendance-system
+for the attendance management system

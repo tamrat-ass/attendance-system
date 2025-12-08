@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Update Permission</title>
+</head>
+<body>
+    <h1>Fix can_update_student Permission</h1>
+    <button onclick="fixPermission()">Fix Permission</button>
+    <div id="result"></div>
+
+    <script>
+        async function fixPermission() {
+            try {
+                const response = await fetch('/api/fix-update-permission', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                if (data.success) {
+                    alert('Permission fixed! Please refresh your page and try again.');
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
