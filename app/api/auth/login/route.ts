@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
        can_manage_students, can_add_student, can_update_student, can_upload_students, can_delete_student,
        can_mark_attendance, can_view_reports, can_export_data,
        can_manage_users, can_delete_user, can_manage_passwords
-       FROM users WHERE username = ? AND password_hash = ? AND status = ?`,
+       FROM users WHERE username = $1 AND password_hash = $2 AND status = $3`,
       [username, password, 'active']
     );
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       
       await db.query(
         `INSERT INTO user_logs (user_id, username, action, details, ip_address) 
-         VALUES (?, ?, ?, ?, ?)`,
+         VALUES ($1, $2, $3, $4, $5)`,
         [user.id, user.username, 'LOGIN', `User logged in (${user.role})`, ip_address]
       );
     } catch (logError) {
