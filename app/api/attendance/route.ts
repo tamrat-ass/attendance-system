@@ -96,9 +96,10 @@ export async function POST(req: Request) {
     const sql = `
       INSERT INTO attendance (student_id, date, status, notes)
       VALUES ${placeholders.join(", ")}
-      ON DUPLICATE KEY UPDATE
-        status = VALUES(status),
-        notes = VALUES(notes),
+      ON CONFLICT (student_id, date)
+      DO UPDATE SET
+        status = EXCLUDED.status,
+        notes = EXCLUDED.notes,
         updated_at = CURRENT_TIMESTAMP
     `;
 
