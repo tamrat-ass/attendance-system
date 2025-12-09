@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Moon, Sun } from 'lucide-react';
 import ChangePasswordDialog from './change-password-dialog';
 import { getCurrentSimpleEthiopianDate, formatSimpleEthiopianDate } from '@/lib/simple-ethiopian-date';
 
@@ -10,6 +11,8 @@ interface HeaderProps {
 }
 // Header component
 export default function Header({ onLogout }: HeaderProps) {
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  
   const currentEthDate = getCurrentSimpleEthiopianDate();
   const ethiopianToday = formatSimpleEthiopianDate(currentEthDate, true);
   
@@ -20,6 +23,23 @@ export default function Header({ onLogout }: HeaderProps) {
     month: 'long', 
     day: 'numeric' 
   });
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    }
+  }, []);
+
+  // Toggle theme
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+  };
 
   const handleLogout = async () => {
     // Log the logout action
@@ -63,6 +83,19 @@ export default function Header({ onLogout }: HeaderProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleTheme}
+            className="flex items-center gap-2"
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          >
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4" />
+            ) : (
+              <Sun className="w-4 h-4" />
+            )}
+          </Button>
           <ChangePasswordDialog />
           <Button 
             variant="outline" 
