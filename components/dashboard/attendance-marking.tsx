@@ -85,6 +85,11 @@ export default function AttendanceMarking() {
 
   useEffect(() => {
     fetchStudents();
+    
+    // Always sync to today's date on component mount
+    const currentEthDate = getCurrentSimpleEthiopianDate();
+    const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
+    setSelectedDate(gregorianDate);
   }, []);
 
   // Fetch existing attendance for selected date and class
