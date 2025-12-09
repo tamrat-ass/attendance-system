@@ -50,13 +50,17 @@ export function SimpleEthiopianDateInput({
       const converted = gregorianToSimpleEthiopian(value);
       console.log('Effect - updating from value:', converted);
       setEthDate(converted);
-    } else if (isOpen) {
-      // When opening without a value, sync to today
+    }
+  }, [value]);
+  
+  // Sync to today when popover opens if no value
+  useEffect(() => {
+    if (isOpen && !value) {
       const today = getCurrentSimpleEthiopianDate();
-      console.log('Effect - syncing to today:', today);
+      console.log('Effect - syncing to today on open:', today);
       setEthDate(today);
     }
-  }, [value, isOpen]);
+  }, [isOpen]);
 
   // Handle date changes - NO COMPLEX CONVERSIONS
   const handleDateChange = (newEthDate: SimpleEthiopianDate) => {
