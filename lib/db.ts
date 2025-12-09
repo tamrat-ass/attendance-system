@@ -36,10 +36,22 @@
 
 import { sql } from '@vercel/postgres';
 
+// Helper function to convert MySQL-style ? placeholders to PostgreSQL $1, $2, etc.
+function convertPlaceholders(query: string, params?: any[]): { text: string; values: any[] } {
+  if (!params || params.length === 0) {
+    return { text: query, values: [] };
+  }
+  
+  let index = 0;
+  const text = query.replace(/\?/g, () => `$${++index}`);
+  return { text, values: params };
+}
+
 export const db = {
   query: async (text: string, params?: any[]) => {
     try {
-      const result = await sql.query(text, params || []);
+      const { text: pgQuery, values } = convertPlaceholders(text, params);
+      const result = await sql.query(pgQuery, values);
       return [result.rows];
     } catch (error) {
       console.error('Database query error:', error);
@@ -48,7 +60,8 @@ export const db = {
   },
   execute: async (text: string, params?: any[]) => {
     try {
-      const result = await sql.query(text, params || []);
+      const { text: pgQuery, values } = convertPlaceholders(text, params);
+      const result = await sql.query(pgQuery, values);
       return [result];
     } catch (error) {
       console.error('Database execute error:', error);
