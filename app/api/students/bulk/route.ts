@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     // Validate all students
     for (let i = 0; i < students.length; i++) {
       const student = students[i];
-      if (!student.full_name || !student.phone || !student.class) {
+      if (!student.full_name || !student.phone || !student.gender || !student.class) {
         return NextResponse.json(
-          { success: false, message: 'All students must have full_name, phone, and class' },
+          { success: false, message: 'All students must have full_name, phone, gender, and class' },
           { status: 400 }
         );
       }
@@ -29,6 +29,14 @@ export async function POST(request: NextRequest) {
       if (!/^09\d{8}$/.test(student.phone)) {
         return NextResponse.json(
           { success: false, message: `Row ${i + 1}: Phone number "${student.phone}" must be exactly 10 digits and start with 09` },
+          { status: 400 }
+        );
+      }
+      
+      // Validate gender
+      if (!['Male', 'Female'].includes(student.gender)) {
+        return NextResponse.json(
+          { success: false, message: `Row ${i + 1}: Gender must be either "Male" or "Female"` },
           { status: 400 }
         );
       }
@@ -78,8 +86,8 @@ export async function POST(request: NextRequest) {
 
         console.log('✓ INSERTING new student:', student.full_name);
         const [result] = await connection.query(
-          'INSERT INTO students (full_name, phone, class) VALUES (?, ?, ?)',
-          [student.full_name, student.phone, student.class]
+          'INSERT INTO students (full_name, phone, gender, class) VALUES (?, ?, ?, ?)',
+          [student.full_name, student.phone, student.gender, student.class]
         );
         
         const newStudent = {

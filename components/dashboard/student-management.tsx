@@ -311,7 +311,7 @@ export default function StudentManagement() {
 
   // Download CSV template
   const downloadTemplate = () => {
-    const csvContent = 'full_name,phone,class';
+    const csvContent = 'full_name,phone,gender,class\nJohn Doe,0912345678,Male,Grade 1\nJane Smith,0923456789,Female,Grade 2';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -350,19 +350,20 @@ export default function StudentManagement() {
         }
 
         const headers = lines[0].split(',').map(h => h.trim());
-        if (!headers.includes('full_name') || !headers.includes('phone') || !headers.includes('class')) {
-          setBulkError('CSV must have columns: full_name, phone, class');
+        if (!headers.includes('full_name') || !headers.includes('phone') || !headers.includes('gender') || !headers.includes('class')) {
+          setBulkError('CSV must have columns: full_name, phone, gender, class');
           return;
         }
 
         const studentsToAdd = [];
         for (let i = 1; i < lines.length; i++) {
           const values = lines[i].split(',').map(v => v.trim());
-          if (values.length >= 3) {
+          if (values.length >= 4) {
             studentsToAdd.push({
               full_name: values[0],
               phone: values[1],
-              class: values[2]
+              gender: values[2],
+              class: values[3]
             });
           }
         }
