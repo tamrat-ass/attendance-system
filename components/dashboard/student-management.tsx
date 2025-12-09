@@ -961,13 +961,6 @@ export default function StudentManagement() {
                   </Button>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>CSV File Format</Label>
-                  <div className="p-4 border rounded-lg bg-muted/30">
-                    <p className="text-sm font-mono">full_name,phone,class</p>
-                  </div>
-                </div>
-
                 <form onSubmit={handleBulkUpload} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="csvFile">Upload CSV File *</Label>
