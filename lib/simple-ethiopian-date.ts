@@ -58,14 +58,22 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
     const newYearDate = new Date(year, 8, newYearStart); // September is month 8 in JS
     const daysSinceNewYear = Math.floor((date.getTime() - newYearDate.getTime()) / (1000 * 60 * 60 * 24));
     
-    // Convert days to Ethiopian month and day
+    // Convert days to Ethiopian month and day (0-indexed for calculation)
     ethMonth = Math.floor(daysSinceNewYear / 30) + 1;
-    ethDay = (daysSinceNewYear % 30) + 1;
+    ethDay = (daysSinceNewYear % 30);
+    
+    // If day is 0, it means it's the 30th of the previous month
+    if (ethDay === 0) {
+      ethDay = 30;
+    } else {
+      ethDay = ethDay;
+    }
     
     // Handle month 13 (Pagumen) - only 5 or 6 days
     if (ethMonth > 12) {
       ethMonth = 13;
-      ethDay = daysSinceNewYear - (12 * 30) + 1;
+      ethDay = daysSinceNewYear - (12 * 30);
+      if (ethDay === 0) ethDay = 1;
       
       // Pagumen has max 5 days (6 in leap years)
       const maxPagumenDays = isEthiopianLeapYear(ethYear) ? 6 : 5;
@@ -84,11 +92,16 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
     const daysSinceNewYear = Math.floor((date.getTime() - prevNewYearDate.getTime()) / (1000 * 60 * 60 * 24));
     
     ethMonth = Math.floor(daysSinceNewYear / 30) + 1;
-    ethDay = (daysSinceNewYear % 30) + 1;
+    ethDay = (daysSinceNewYear % 30);
+    
+    if (ethDay === 0) {
+      ethDay = 30;
+    }
     
     if (ethMonth > 12) {
       ethMonth = 13;
-      ethDay = daysSinceNewYear - (12 * 30) + 1;
+      ethDay = daysSinceNewYear - (12 * 30);
+      if (ethDay === 0) ethDay = 1;
     }
   }
   
