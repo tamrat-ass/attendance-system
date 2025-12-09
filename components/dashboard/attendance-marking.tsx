@@ -359,6 +359,7 @@ export default function AttendanceMarking() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <SimpleEthiopianDateInput
+                key={selectedDate}
                 label="ቀን (Date)"
                 value={selectedDate}
                 onChange={setSelectedDate}
