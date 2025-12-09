@@ -22,6 +22,7 @@ interface Student {
   full_name: string;
   phone: string;
   class: string;
+  gender?: string;
 }
 
 interface AttendanceRecord {
@@ -371,6 +372,7 @@ export default function AttendanceMarking() {
                   <TableRow>
                     <TableHead className="w-20">ID</TableHead>
                     <TableHead>Name</TableHead>
+                    <TableHead className="w-24">Gender</TableHead>
                     <TableHead className="w-32">Phone</TableHead>
                     <TableHead className="w-32">Class</TableHead>
                     <TableHead className="w-48">Mark Status</TableHead>
@@ -382,6 +384,7 @@ export default function AttendanceMarking() {
                     <TableRow key={student.id}>
                       <TableCell className="font-mono text-sm">{student.id}</TableCell>
                       <TableCell className="font-medium">{student.full_name}</TableCell>
+                      <TableCell className="text-sm">{student.gender || 'Male'}</TableCell>
                       <TableCell>{student.phone}</TableCell>
                       <TableCell className="font-medium">{student.class}</TableCell>
                       <TableCell>
