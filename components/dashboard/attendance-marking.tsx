@@ -248,7 +248,7 @@ export default function AttendanceMarking() {
     setStudentStatus(newStatus);
   };
 
-  // Export attendance to CSV
+  // Export attendance to CSV (current class only)
   const handleExportToExcel = () => {
     if (classStudents.length === 0) return;
 
@@ -256,6 +256,7 @@ export default function AttendanceMarking() {
       'Student ID': student.id,
       'Name': student.full_name,
       'Phone': student.phone,
+      'Class': student.class,
       'Status': studentStatus[student.id] || 'Not Marked',
       'Notes': notes[student.id] || ''
     }));
@@ -274,6 +275,68 @@ export default function AttendanceMarking() {
     a.href = url;
     a.download = `attendance-${selectedClass}-${selectedDate}.csv`;
     a.click();
+  };
+
+  // Export all attendance records (all classes)
+  const handleExportAllAttendance = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/attendance?date=${selectedDate}`);
+      const data = await response.json();
+
+      if (response.ok && data.data && data.data.length > 0) {
+        // Create a map of student IDs to student info
+        const studentMap = new Map(students.map(s => [s.id, s]));
+
+        const exportData = data.data.map((record: any) => {
+          const student = studentMap.get(record.student_id);
+          return {
+            'Student ID': record.student_id,
+            'Name': student?.full_name || 'Unknown',
+            'Phone': student?.phone || '',
+            'Class': student?.class || '',
+            'Gender': student?.gender || '',
+            'Status': record.status,
+            'Notes': record.notes || '',
+            'Date': record.date
+          };
+        });
+
+        const headers = Object.keys(exportData[0]);
+        const csv = [
+          headers.join(','),
+          ...exportData.map(row => 
+            headers.map(h => `"${row[h as keyof typeof row]}"`).join(',')
+          )
+        ].join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `attendance-all-classes-${selectedDate}.csv`;
+        a.click();
+
+        toast({
+          title: "Success",
+          description: `Exported ${exportData.length} attendance records`,
+        });
+      } else {
+        toast({
+          title: "No Data",
+          description: "No attendance records found for this date",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export attendance data",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -468,7 +531,11 @@ export default function AttendanceMarking() {
               </Button>
               <Button onClick={handleExportToExcel} variant="outline" size="lg" className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                Export CSV
+                Export CSV (Current Class)
+              </Button>
+              <Button onClick={handleExportAllAttendance} variant="outline" size="lg" className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export CSV (All Classes)
               </Button>
             </div>
           </CardContent>
