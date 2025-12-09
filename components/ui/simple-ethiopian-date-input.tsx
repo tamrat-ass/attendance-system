@@ -113,6 +113,12 @@ export function SimpleEthiopianDateInput({
     dayOptions.push(i);
   }
 
+  // Check if selected date is today
+  const today = getCurrentSimpleEthiopianDate();
+  const isToday = today.year === ethDate.year && 
+                  today.month === ethDate.month && 
+                  today.day === ethDate.day;
+
   return (
     <div className={`space-y-2 ${className}`}>
       {label && <Label className="text-sm font-medium">{label}</Label>}
@@ -121,7 +127,9 @@ export function SimpleEthiopianDateInput({
         <PopoverTrigger asChild>
           <Button
             variant="outline"
-            className="w-full justify-between text-left font-normal"
+            className={`w-full justify-between text-left font-normal ${
+              isToday ? 'border-red-400 border-2 hover:border-red-500' : ''
+            }`}
             onClick={() => setIsOpen(!isOpen)}
           >
             <div className="flex items-center gap-2">
