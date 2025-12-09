@@ -58,12 +58,12 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
     const prevNewYearDay = isLeapYear(year - 1) ? 12 : 11;
     const prevNewYear = new Date(year - 1, 8, prevNewYearDay); // Sept is month 8
     const diffTime = date.getTime() - prevNewYear.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start day
     
     // Each Ethiopian month has exactly 30 days (except Pagumen)
     ethMonth = Math.floor(diffDays / 30) + 1;
     const remainder = diffDays % 30;
-    ethDay = remainder === 0 ? 30 : remainder; // If remainder is 0, it's day 30 of previous month
+    ethDay = remainder === 0 ? 30 : remainder;
     
     // Adjust month if day is 30 and we calculated wrong month
     if (remainder === 0 && ethMonth > 1) {
@@ -75,7 +75,7 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
     
     const newYear = new Date(year, 8, ethNewYearDay); // Sept is month 8
     const diffTime = date.getTime() - newYear.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include start day
     
     // Each Ethiopian month has exactly 30 days (except Pagumen)
     ethMonth = Math.floor(diffDays / 30) + 1;
