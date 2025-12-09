@@ -269,7 +269,9 @@ export default function AttendanceMarking() {
       )
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    // Add UTF-8 BOM for proper encoding in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -310,7 +312,9 @@ export default function AttendanceMarking() {
           )
         ].join('\n');
 
-        const blob = new Blob([csv], { type: 'text/csv' });
+        // Add UTF-8 BOM for proper encoding in Excel
+        const BOM = '\uFEFF';
+        const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -531,11 +535,11 @@ export default function AttendanceMarking() {
               </Button>
               <Button onClick={handleExportToExcel} variant="outline" size="lg" className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                <span>ወደ CSV ላክ (የተመረጠው ክፍል)</span>
+                Export CSV (Current Class)
               </Button>
               <Button onClick={handleExportAllAttendance} variant="outline" size="lg" className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                <span>ወደ CSV ላክ (ሁሉም ክፍሎች)</span>
+                Export CSV (All Classes)
               </Button>
             </div>
           </CardContent>
