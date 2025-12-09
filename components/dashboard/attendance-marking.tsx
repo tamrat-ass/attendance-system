@@ -372,6 +372,7 @@ export default function AttendanceMarking() {
                     <TableHead className="w-20">ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="w-32">Phone</TableHead>
+                    <TableHead className="w-32">Class</TableHead>
                     <TableHead className="w-48">Mark Status</TableHead>
                     <TableHead>Notes (Optional)</TableHead>
                   </TableRow>
@@ -382,6 +383,7 @@ export default function AttendanceMarking() {
                       <TableCell className="font-mono text-sm">{student.id}</TableCell>
                       <TableCell className="font-medium">{student.full_name}</TableCell>
                       <TableCell>{student.phone}</TableCell>
+                      <TableCell className="font-medium">{student.class}</TableCell>
                       <TableCell>
                         <div className="flex gap-1.5">
                           <Button
