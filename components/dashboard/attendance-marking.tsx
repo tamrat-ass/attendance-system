@@ -36,7 +36,9 @@ export default function AttendanceMarking() {
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     const currentEthDate = getCurrentSimpleEthiopianDate();
-    return simpleEthiopianToGregorian(currentEthDate);
+    const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
+    console.log('Initial date - Ethiopian:', currentEthDate, 'Gregorian:', gregorianDate);
+    return gregorianDate;
   });
   const [selectedClass, setSelectedClass] = useState('');
   const [studentStatus, setStudentStatus] = useState<{ [key: number]: 'present' | 'absent' | 'late' | 'permission' }>({});
