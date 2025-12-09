@@ -286,13 +286,14 @@ export default function StudentManagement() {
       return;
     }
 
-    // Create CSV content
-    const headers = 'ID,Full Name,Phone,Class';
+    // Create CSV content with BOM for proper UTF-8 encoding (supports Amharic)
+    const BOM = '\uFEFF';
+    const headers = 'ID,Full Name,Phone,Gender,Class';
     const rows = filteredStudents.map(student => 
-      `${student.id},"${student.full_name}","${student.phone?.replace(/[^0-9]/g, '') || student.phone}","${student.class}"`
+      `${student.id},"${student.full_name}","${student.phone?.replace(/[^0-9]/g, '') || student.phone}","${student.gender || 'Male'}","${student.class}"`
     ).join('\n');
     
-    const csvContent = `${headers}\n${rows}`;
+    const csvContent = `${BOM}${headers}\n${rows}`;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
