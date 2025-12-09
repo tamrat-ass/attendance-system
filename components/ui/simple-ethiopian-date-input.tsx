@@ -170,7 +170,6 @@ export function SimpleEthiopianDateInput({
               <Label className="text-xs text-muted-foreground">ቀን (Day)</Label>
               <div className="grid grid-cols-5 gap-2 mt-2">
                 {dayOptions.map((day) => {
-                  const isSelected = ethDate.day === day;
                   const today = getCurrentSimpleEthiopianDate();
                   const isToday = today.year === ethDate.year && 
                                   today.month === ethDate.month && 
@@ -179,14 +178,12 @@ export function SimpleEthiopianDateInput({
                   return (
                     <Button
                       key={day}
-                      variant={isSelected ? "default" : "outline"}
+                      variant="outline"
                       size="sm"
                       className={`h-9 w-full p-0 text-xs ${
-                        isSelected 
-                          ? 'bg-primary text-primary-foreground' 
-                          : isToday 
-                            ? 'bg-red-900 text-white hover:bg-red-800 border-red-900' 
-                            : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        isToday 
+                          ? 'bg-red-900 text-white hover:bg-red-800 border-red-900' 
+                          : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
                       }`}
                       onClick={() => handleDayClick(day)}
                     >
