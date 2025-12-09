@@ -531,11 +531,11 @@ export default function AttendanceMarking() {
               </Button>
               <Button onClick={handleExportToExcel} variant="outline" size="lg" className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                Export CSV (Current Class)
+                <span>ወደ CSV ላክ (የተመረጠው ክፍል)</span>
               </Button>
               <Button onClick={handleExportAllAttendance} variant="outline" size="lg" className="flex items-center gap-2">
                 <Download className="w-4 h-4" />
-                Export CSV (All Classes)
+                <span>ወደ CSV ላክ (ሁሉም ክፍሎች)</span>
               </Button>
             </div>
           </CardContent>
