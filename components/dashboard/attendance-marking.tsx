@@ -138,14 +138,19 @@ export default function AttendanceMarking() {
     }
   }, [selectedDate, selectedClass]);
 
-  // Filter students by selected class and search term
+  // Filter students by search term (search across ALL classes) and then by selected class
   const classStudents = students
-    .filter(s => s.class === selectedClass)
     .filter(s => 
+      // If searching, search across ALL classes
       searchStudent === '' ||
       s.id.toString().includes(searchStudent) || 
       s.full_name.toLowerCase().includes(searchStudent.toLowerCase()) ||
       s.phone.includes(searchStudent)
+    )
+    .filter(s => 
+      // If not searching, filter by selected class
+      // If searching, show results from all classes
+      searchStudent !== '' || s.class === selectedClass
     );
 
   // Handle status change for a student
