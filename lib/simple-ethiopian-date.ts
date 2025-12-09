@@ -40,7 +40,7 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
   const month = date.getMonth() + 1;
   const day = date.getDate();
   
-  // Ethiopian New Year is September 11 (or 12 in leap year before Ethiopian leap year)
+  // Ethiopian New Year is September 11 (or 12 in leap year)
   // Ethiopian year is 7 or 8 years behind Gregorian
   
   let ethYear: number;
@@ -60,8 +60,15 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
     const diffTime = date.getTime() - prevNewYear.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
+    // Each Ethiopian month has exactly 30 days (except Pagumen)
     ethMonth = Math.floor(diffDays / 30) + 1;
-    ethDay = (diffDays % 30) + 1;
+    const remainder = diffDays % 30;
+    ethDay = remainder === 0 ? 30 : remainder; // If remainder is 0, it's day 30 of previous month
+    
+    // Adjust month if day is 30 and we calculated wrong month
+    if (remainder === 0 && ethMonth > 1) {
+      ethMonth = ethMonth - 1;
+    }
   } else {
     // After Ethiopian New Year - in current Ethiopian year
     ethYear = year - 7;
@@ -70,16 +77,26 @@ function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
     const diffTime = date.getTime() - newYear.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     
+    // Each Ethiopian month has exactly 30 days (except Pagumen)
     ethMonth = Math.floor(diffDays / 30) + 1;
-    ethDay = (diffDays % 30) + 1;
+    const remainder = diffDays % 30;
+    ethDay = remainder === 0 ? 30 : remainder;
+    
+    // Adjust month if day is 30 and we calculated wrong month
+    if (remainder === 0 && ethMonth > 1) {
+      ethMonth = ethMonth - 1;
+    }
   }
   
   // Handle month 13 (Pagumen)
   if (ethMonth > 12) {
     ethMonth = 13;
-    const daysIntoYear = (ethMonth - 1) * 30 + ethDay;
-    ethDay = daysIntoYear - 360; // 12 months * 30 days
+    // Pagumen days calculation
+    const totalDays = (ethMonth - 1) * 30 + ethDay;
+    ethDay = totalDays - 360; // 12 months * 30 days
   }
+  
+  console.log('Ethiopian date conversion:', { year: ethYear, month: ethMonth, day: ethDay });
   
   return { year: ethYear, month: ethMonth, day: ethDay };
 }
