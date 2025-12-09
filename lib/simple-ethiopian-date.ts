@@ -34,25 +34,52 @@ export function getCurrentSimpleEthiopianDate(): SimpleEthiopianDate {
   return gregorianToSimpleEthiopianAccurate(now);
 }
 
-// Accurate Gregorian to Ethiopian conversion using proper algorithm
+// Accurate Gregorian to Ethiopian conversion
 function gregorianToSimpleEthiopianAccurate(date: Date): SimpleEthiopianDate {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
   
-  // JDN (Julian Day Number) calculation
-  const a = Math.floor((14 - month) / 12);
-  const y = year + 4800 - a;
-  const m = month + 12 * a - 3;
-  const jdn = day + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+  // Ethiopian New Year is September 11 (or 12 in leap year before Ethiopian leap year)
+  // Ethiopian year is 7 or 8 years behind Gregorian
   
-  // Convert JDN to Ethiopian calendar
-  const r = (jdn - 1723856) % 1461;
-  const n = (r % 365) + 365 * Math.floor(r / 1460);
+  let ethYear: number;
+  let ethMonth: number;
+  let ethDay: number;
   
-  const ethYear = Math.floor((jdn - 1723856) / 1461) + 1;
-  const ethMonth = Math.floor(n / 30) + 1;
-  const ethDay = (n % 30) + 1;
+  // Check if we're before or after Ethiopian New Year
+  const ethNewYearDay = isLeapYear(year) ? 12 : 11;
+  
+  if (month < 9 || (month === 9 && day < ethNewYearDay)) {
+    // Before Ethiopian New Year - still in previous Ethiopian year
+    ethYear = year - 8;
+    
+    // Calculate from previous year's New Year
+    const prevNewYearDay = isLeapYear(year - 1) ? 12 : 11;
+    const prevNewYear = new Date(year - 1, 8, prevNewYearDay); // Sept is month 8
+    const diffTime = date.getTime() - prevNewYear.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    ethMonth = Math.floor(diffDays / 30) + 1;
+    ethDay = (diffDays % 30) + 1;
+  } else {
+    // After Ethiopian New Year - in current Ethiopian year
+    ethYear = year - 7;
+    
+    const newYear = new Date(year, 8, ethNewYearDay); // Sept is month 8
+    const diffTime = date.getTime() - newYear.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    ethMonth = Math.floor(diffDays / 30) + 1;
+    ethDay = (diffDays % 30) + 1;
+  }
+  
+  // Handle month 13 (Pagumen)
+  if (ethMonth > 12) {
+    ethMonth = 13;
+    const daysIntoYear = (ethMonth - 1) * 30 + ethDay;
+    ethDay = daysIntoYear - 360; // 12 months * 30 days
+  }
   
   return { year: ethYear, month: ethMonth, day: ethDay };
 }
