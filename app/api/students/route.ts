@@ -68,9 +68,9 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { full_name, phone, class: studentClass } = body;
+    const { full_name, phone, class: studentClass, gender } = body;
 
-    if (!full_name || !phone || !studentClass) {
+    if (!full_name || !phone || !studentClass || !gender) {
       return NextResponse.json(
         { message: "Missing required fields" },
         { status: 400 }
@@ -86,8 +86,8 @@ export async function POST(req: Request) {
     }
 
     await db.query(
-      "INSERT INTO students (full_name, phone, class) VALUES (?, ?, ?)",
-      [full_name, phone, studentClass]
+      "INSERT INTO students (full_name, phone, class, gender) VALUES (?, ?, ?, ?)",
+      [full_name, phone, studentClass, gender]
     );
 
     return NextResponse.json({ message: "Student created successfully" });

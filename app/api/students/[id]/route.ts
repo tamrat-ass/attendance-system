@@ -8,10 +8,10 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { full_name, phone, class: studentClass } = await request.json();
+    const { full_name, phone, class: studentClass, gender } = await request.json();
 
     // Validate required fields
-    if (!full_name || !phone || !studentClass) {
+    if (!full_name || !phone || !studentClass || !gender) {
       return NextResponse.json(
         { success: false, message: 'All fields are required' },
         { status: 400 }
@@ -38,8 +38,8 @@ export async function PUT(
 
     // Update student
     await db.query(
-      'UPDATE students SET full_name = ?, phone = ?, class = ? WHERE id = ?',
-      [full_name, phone, studentClass, id]
+      'UPDATE students SET full_name = ?, phone = ?, class = ?, gender = ? WHERE id = ?',
+      [full_name, phone, studentClass, gender, id]
     );
 
     return NextResponse.json({
@@ -49,7 +49,8 @@ export async function PUT(
         id: parseInt(id),
         full_name,
         phone,
-        class: studentClass
+        class: studentClass,
+        gender
       }
     });
   } catch (error: any) {

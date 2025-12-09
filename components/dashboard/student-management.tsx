@@ -18,6 +18,7 @@ interface Student {
   full_name: string;
   phone: string;
   class: string;
+  gender?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -76,7 +77,8 @@ export default function StudentManagement() {
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
-    class: ''
+    class: '',
+    gender: ''
   });
 
   // Fetch students from API
@@ -119,7 +121,7 @@ export default function StudentManagement() {
     setError('');
     setSuccess('');
 
-    if (!formData.full_name || !formData.phone || !formData.class) {
+    if (!formData.full_name || !formData.phone || !formData.class || !formData.gender) {
       setError('All fields are required');
       return;
     }
@@ -142,7 +144,7 @@ export default function StudentManagement() {
 
       if (response.ok) {
         setSuccess('Student added successfully!');
-        setFormData({ full_name: '', phone: '', class: '' });
+        setFormData({ full_name: '', phone: '', class: '', gender: '' });
         fetchStudents(); // Refresh list
         toast({
           title: "Success",
@@ -202,7 +204,7 @@ export default function StudentManagement() {
       if (response.ok) {
         setSuccess('Student updated successfully!');
         setEditingStudent(null);
-        setFormData({ full_name: '', phone: '', class: '' });
+        setFormData({ full_name: '', phone: '', class: '', gender: '' });
         await fetchStudents();
         setActiveTab('manage'); // Switch back to manage tab
         toast({
@@ -257,7 +259,8 @@ export default function StudentManagement() {
     setFormData({
       full_name: student.full_name,
       phone: student.phone,
-      class: student.class
+      class: student.class,
+      gender: student.gender || ''
     });
     setActiveTab('add'); // Switch to add/edit tab
     setError('');
@@ -267,7 +270,7 @@ export default function StudentManagement() {
   // Cancel editing
   const cancelEdit = () => {
     setEditingStudent(null);
-    setFormData({ full_name: '', phone: '', class: '' });
+    setFormData({ full_name: '', phone: '', class: '', gender: '' });
     setError('');
     setSuccess('');
   };
@@ -634,6 +637,23 @@ export default function StudentManagement() {
                   {formData.phone && formData.phone.length === 10 && !formData.phone.startsWith('09') && (
                     <p className="text-sm text-red-600">Phone number must start with 09</p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender *</Label>
+                  <Select
+                    value={formData.gender}
+                    onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                    required
+                  >
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
