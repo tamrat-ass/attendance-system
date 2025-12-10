@@ -357,13 +357,25 @@ export default function AttendanceMarking() {
   const handleExportToExcel = () => {
     if (classStudents.length === 0) return;
 
+    // Helper function to translate status to Amharic
+    const translateStatus = (status: string) => {
+      const statusMap: { [key: string]: string } = {
+        'present': 'ተገኝቷል',
+        'absent': 'ተቀምጧል', 
+        'late': 'ዘግይቷል',
+        'permission': 'ፈቃድ',
+        'Not Marked': 'አልተመዘገበም'
+      };
+      return statusMap[status] || status;
+    };
+
     const data = classStudents.map(student => ({
-      'Student ID': student.id,
-      'Name': student.full_name,
-      'Phone': student.phone,
-      'Class': student.class,
-      'Status': studentStatus[student.id] || 'Not Marked',
-      'Notes': notes[student.id] || ''
+      'የተማሪ መለያ': student.id,
+      'ስም': student.full_name,
+      'ስልክ': student.phone,
+      'ክፍል': student.class,
+      'ሁኔታ': translateStatus(studentStatus[student.id] || 'Not Marked'),
+      'ማስታወሻ': notes[student.id] || ''
     }));
 
     const headers = Object.keys(data[0]);

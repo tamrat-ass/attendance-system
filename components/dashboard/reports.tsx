@@ -205,17 +205,17 @@ export default function Reports() {
       const totalAttendedDays = student.present + student.permission;
       
       return {
-        'Student ID': student.id,
-        'Name': student.full_name,
-        'Class': student.class,
-        'Phone': student.phone,
-        'Total Days': student.total,
-        'Present': student.present,
-        'Absent': student.absent,
-        'Late': student.late,
-        'Permission': student.permission,
-        'Total Attended Days': totalAttendedDays,
-        'Attendance Rate': `${student.attendanceRate}%`
+        'የተማሪ መለያ': student.id,
+        'ስም': student.full_name,
+        'ክፍል': student.class,
+        'ስልክ': student.phone,
+        'ጠቅላላ ቀናት': student.total,
+        'ተገኝቷል': student.present,
+        'ተቀምጧል': student.absent,
+        'ዘግይቷል': student.late,
+        'ፈቃድ': student.permission,
+        'ጠቅላላ የተገኙ ቀናት': totalAttendedDays,
+        'የመገኘት መጠን': `${student.attendanceRate}%`
       };
     });
 
