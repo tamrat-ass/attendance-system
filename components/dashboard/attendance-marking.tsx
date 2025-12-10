@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { SimpleEthiopianDateInput } from '@/components/ui/simple-ethiopian-date-input';
 import { Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { usePerformance } from '@/hooks/use-performance';
 import { 
   getCurrentSimpleEthiopianDate, 
   simpleEthiopianToGregorian, 
@@ -35,6 +36,7 @@ interface AttendanceRecord {
 export default function AttendanceMarking() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
+  const { metrics, measureApiCall } = usePerformance('AttendanceMarking');
   const [selectedDate, setSelectedDate] = useState(() => {
     const currentEthDate = getCurrentSimpleEthiopianDate();
     const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
@@ -53,8 +55,10 @@ export default function AttendanceMarking() {
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/students?limit=10000'); // Ensure we get all students
-      const data = await response.json();
+      const data = await measureApiCall(
+        () => fetch('/api/students?limit=10000').then(res => res.json()),
+        'fetchStudents'
+      );
       
       if (response.ok) {
         const studentsData = data.data || [];

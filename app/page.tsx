@@ -4,10 +4,14 @@ import { useState, useEffect } from 'react';
 import LoginPage from '@/components/auth/login-page';
 import Dashboard from '@/components/dashboard/dashboard';
 import { SessionManager } from '@/lib/session-manager';
+import { usePagePerformance } from '@/hooks/use-performance';
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Monitor page performance
+  usePagePerformance('AttendanceSystem');
 
   useEffect(() => {
     // Check initial authentication status
