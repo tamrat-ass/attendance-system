@@ -16,10 +16,15 @@ export default function Home() {
   usePagePerformance('AttendanceSystem');
 
   useEffect(() => {
-    // Check initial authentication status
-    const isAuth = SessionManager.isAuthenticated();
-    setIsAuthenticated(isAuth);
-    setIsLoading(false);
+    // Fast authentication check
+    const checkAuth = () => {
+      const isAuth = SessionManager.isAuthenticated();
+      setIsAuthenticated(isAuth);
+      setIsLoading(false);
+    };
+    
+    // Use requestAnimationFrame for faster rendering
+    requestAnimationFrame(checkAuth);
   }, []);
 
   const handleLogin = () => {
@@ -39,13 +44,13 @@ export default function Home() {
     }
   };
 
-  // Show loading while checking authentication
+  // Show fast loading while checking authentication
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
