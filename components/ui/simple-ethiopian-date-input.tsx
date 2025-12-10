@@ -30,38 +30,36 @@ export function SimpleEthiopianDateInput({
   useAmharic = true,
   className = ""
 }: SimpleEthiopianDateInputProps) {
-  // ALWAYS start with today's date - ignore any cached values
+  // Start with SMART default date (considers late-night work)
   const [ethDate, setEthDate] = useState<SimpleEthiopianDate>(() => {
-    const today = getCurrentSimpleEthiopianDate();
-    console.log('Date picker initialized with TODAY:', today);
-    return today;
+    // Import the smart date system
+    const { getSmartDefaultDate } = require('@/lib/advanced-date-system');
+    const smartDate = getSmartDefaultDate();
+    console.log('Date picker initialized with SMART DEFAULT:', smartDate);
+    return smartDate;
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const months = useAmharic ? ETHIOPIAN_MONTHS : ETHIOPIAN_MONTHS_EN;
 
-  // Force sync to today's date on component mount and ignore cached values
+  // Force sync to smart default date on component mount
   useEffect(() => {
-    const today = getCurrentSimpleEthiopianDate();
-    console.log('Force syncing to TODAY:', today);
-    setEthDate(today);
+    const { getSmartDefaultDate } = require('@/lib/advanced-date-system');
+    const smartDate = getSmartDefaultDate();
+    console.log('Force syncing to SMART DEFAULT:', smartDate);
+    setEthDate(smartDate);
     
-    // Also notify parent component with today's date
-    const gregorianToday = simpleEthiopianToGregorian(today);
-    onChange(gregorianToday);
+    // Notify parent component with smart default date
+    const gregorianDate = simpleEthiopianToGregorian(smartDate);
+    onChange(gregorianDate);
   }, []); // Empty dependency array - only run once on mount
 
-  // Only update if user explicitly provides a different value
+  // Update when value changes (user selection)
   useEffect(() => {
     if (value) {
       const converted = gregorianToSimpleEthiopian(value);
-      const today = getCurrentSimpleEthiopianDate();
-      
-      // Only accept the value if user explicitly changed it (not today)
-      if (converted.year !== today.year || converted.month !== today.month || converted.day !== today.day) {
-        console.log('User selected different date:', converted);
-        setEthDate(converted);
-      }
+      console.log('User selected date:', converted);
+      setEthDate(converted);
     }
   }, [value]);
 
@@ -218,22 +216,33 @@ export function SimpleEthiopianDateInput({
               <Label className="text-xs text-muted-foreground">ቀን (Day)</Label>
               <div className="grid grid-cols-5 gap-2 mt-2">
                 {dayOptions.map((day) => {
-                  const today = getCurrentSimpleEthiopianDate();
-                  const isToday = today.year === ethDate.year && 
-                                  today.month === ethDate.month && 
-                                  today.day === day;
+                  const { getDateInfo, isToday: checkIsToday } = require('@/lib/advanced-date-system');
+                  const dayDate = { ...ethDate, day };
+                  const dateInfo = getDateInfo(dayDate);
+                  const isToday = checkIsToday(dayDate);
+                  const isSelected = ethDate.day === day;
+                  
+                  let buttonClass = 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600';
+                  
+                  if (dateInfo.status === 'DISABLED') {
+                    buttonClass = 'bg-gray-200 text-gray-400 cursor-not-allowed';
+                  } else if (dateInfo.status === 'EFFECTIVE') {
+                    buttonClass = 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600 font-bold';
+                  } else if (isToday) {
+                    buttonClass = 'bg-red-900 text-white hover:bg-red-800 border-red-900';
+                  } else if (isSelected) {
+                    buttonClass = 'bg-green-600 text-white hover:bg-green-700 border-green-600';
+                  }
                   
                   return (
                     <Button
                       key={day}
                       variant="outline"
                       size="sm"
-                      className={`h-9 w-full p-0 text-xs ${
-                        isToday 
-                          ? 'bg-red-900 text-white hover:bg-red-800 border-red-900' 
-                          : 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600'
-                      }`}
+                      className={`h-9 w-full p-0 text-xs ${buttonClass}`}
                       onClick={() => handleDayClick(day)}
+                      disabled={dateInfo.status === 'DISABLED'}
+                      title={dateInfo.reason || ''}
                     >
                       {day}
                     </Button>
