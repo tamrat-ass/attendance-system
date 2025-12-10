@@ -235,20 +235,26 @@ export default function AttendanceMarking() {
     }
   };
 
-  // Mark all students as present
+  // Mark all UNMARKED students as present (don't change already marked students)
   const handleMarkAllPresent = () => {
-    const newStatus: { [key: number]: 'present' | 'absent' | 'late' | 'permission' } = {};
+    const newStatus = { ...studentStatus }; // Keep existing status
     classStudents.forEach(student => {
-      newStatus[student.id] = 'present';
+      // Only mark as present if student doesn't have any status yet
+      if (!studentStatus[student.id]) {
+        newStatus[student.id] = 'present';
+      }
     });
     setStudentStatus(newStatus);
   };
 
-  // Mark all students as absent
+  // Mark all UNMARKED students as absent (don't change already marked students)
   const handleMarkAllAbsent = () => {
-    const newStatus: { [key: number]: 'present' | 'absent' | 'late' | 'permission' } = {};
+    const newStatus = { ...studentStatus }; // Keep existing status
     classStudents.forEach(student => {
-      newStatus[student.id] = 'absent';
+      // Only mark as absent if student doesn't have any status yet
+      if (!studentStatus[student.id]) {
+        newStatus[student.id] = 'absent';
+      }
     });
     setStudentStatus(newStatus);
   };
