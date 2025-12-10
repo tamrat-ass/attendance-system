@@ -200,18 +200,24 @@ export default function Reports() {
       return;
     }
 
-    const data = stats.studentStats.map(student => ({
-      'Student ID': student.id,
-      'Name': student.full_name,
-      'Class': student.class,
-      'Phone': student.phone,
-      'Total Days': student.total,
-      'Present': student.present,
-      'Absent': student.absent,
-      'Late': student.late,
-      'Permission': student.permission,
-      'Attendance Rate': `${student.attendanceRate}%`
-    }));
+    const data = stats.studentStats.map(student => {
+      // Calculate Total Attended Days (Present + Permission)
+      const totalAttendedDays = student.present + student.permission;
+      
+      return {
+        'Student ID': student.id,
+        'Name': student.full_name,
+        'Class': student.class,
+        'Phone': student.phone,
+        'Total Days': student.total,
+        'Present': student.present,
+        'Absent': student.absent,
+        'Late': student.late,
+        'Permission': student.permission,
+        'Total Attended Days': totalAttendedDays,
+        'Attendance Rate': `${student.attendanceRate}%`
+      };
+    });
 
     const headers = Object.keys(data[0]);
     const startEthDate = formatSimpleEthiopianDate(gregorianToSimpleEthiopian(startDate), true);
@@ -226,7 +232,9 @@ export default function Reports() {
       )
     ].join('\n');
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    // Add UTF-8 BOM for proper Amharic character display in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
