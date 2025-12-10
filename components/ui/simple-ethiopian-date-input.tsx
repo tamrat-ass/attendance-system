@@ -41,22 +41,24 @@ export function SimpleEthiopianDateInput({
 
   const months = useAmharic ? ETHIOPIAN_MONTHS : ETHIOPIAN_MONTHS_EN;
 
-  // Force sync to today's actual date on component mount
+  // Only sync to today on initial mount if no value is provided
   useEffect(() => {
-    const todayDate = getCurrentSimpleEthiopianDate();
-    console.log('Force syncing to TODAY:', todayDate);
-    setEthDate(todayDate);
-    
-    // Notify parent component with today's date
-    const gregorianDate = simpleEthiopianToGregorian(todayDate);
-    onChange(gregorianDate);
+    if (!value) {
+      const todayDate = getCurrentSimpleEthiopianDate();
+      console.log('Initial sync to TODAY:', todayDate);
+      setEthDate(todayDate);
+      
+      // Notify parent component with today's date
+      const gregorianDate = simpleEthiopianToGregorian(todayDate);
+      onChange(gregorianDate);
+    }
   }, []); // Empty dependency array - only run once on mount
 
-  // Update when value changes (user selection)
+  // Update when value changes (user selection or parent update)
   useEffect(() => {
     if (value) {
       const converted = gregorianToSimpleEthiopian(value);
-      console.log('User selected date:', converted);
+      console.log('Updating to provided value:', converted);
       setEthDate(converted);
     }
   }, [value]);
