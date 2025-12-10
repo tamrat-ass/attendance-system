@@ -30,22 +30,38 @@ export function SimpleEthiopianDateInput({
   useAmharic = true,
   className = ""
 }: SimpleEthiopianDateInputProps) {
-  // Always start with today's date for simplicity
+  // ALWAYS start with today's date - ignore any cached values
   const [ethDate, setEthDate] = useState<SimpleEthiopianDate>(() => {
-    return getCurrentSimpleEthiopianDate();
+    const today = getCurrentSimpleEthiopianDate();
+    console.log('Date picker initialized with TODAY:', today);
+    return today;
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const months = useAmharic ? ETHIOPIAN_MONTHS : ETHIOPIAN_MONTHS_EN;
 
-  // Simple sync: always use today's date unless user explicitly changes it
+  // Force sync to today's date on component mount and ignore cached values
+  useEffect(() => {
+    const today = getCurrentSimpleEthiopianDate();
+    console.log('Force syncing to TODAY:', today);
+    setEthDate(today);
+    
+    // Also notify parent component with today's date
+    const gregorianToday = simpleEthiopianToGregorian(today);
+    onChange(gregorianToday);
+  }, []); // Empty dependency array - only run once on mount
+
+  // Only update if user explicitly provides a different value
   useEffect(() => {
     if (value) {
       const converted = gregorianToSimpleEthiopian(value);
-      setEthDate(converted);
-    } else {
-      // No value provided, use today
-      setEthDate(getCurrentSimpleEthiopianDate());
+      const today = getCurrentSimpleEthiopianDate();
+      
+      // Only accept the value if user explicitly changed it (not today)
+      if (converted.year !== today.year || converted.month !== today.month || converted.day !== today.day) {
+        console.log('User selected different date:', converted);
+        setEthDate(converted);
+      }
     }
   }, [value]);
 
