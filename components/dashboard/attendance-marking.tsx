@@ -235,58 +235,144 @@ export default function AttendanceMarking() {
     }
   };
 
-  // Mark all UNMARKED students as present and auto-save
+  // Mark all UNMARKED students from ALL CLASSES as present and auto-save
   const handleMarkAllPresent = async () => {
-    const newStatus = { ...studentStatus }; // Keep existing status
-    let unmarkedCount = 0;
-    
-    classStudents.forEach(student => {
-      // Only mark as present if student doesn't have any status yet
-      if (!studentStatus[student.id]) {
-        newStatus[student.id] = 'present';
-        unmarkedCount++;
+    setLoading(true);
+    try {
+      // Get existing attendance for this date across ALL classes
+      const response = await fetch(`/api/attendance?date=${selectedDate}`);
+      const existingData = await response.json();
+      
+      // Create a set of student IDs who already have attendance
+      const markedStudentIds = new Set();
+      if (response.ok && existingData.data) {
+        existingData.data.forEach((record: any) => {
+          markedStudentIds.add(record.student_id);
+        });
       }
-    });
-    
-    if (unmarkedCount === 0) {
-      toast({
-        title: "No Action Needed",
-        description: "All students already have attendance marked",
+      
+      // Find all unmarked students from ALL classes
+      const unmarkedStudents = students.filter(student => !markedStudentIds.has(student.id));
+      
+      if (unmarkedStudents.length === 0) {
+        toast({
+          title: "No Action Needed",
+          description: "All students in all classes already have attendance marked",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Prepare records for ALL unmarked students
+      const records = unmarkedStudents.map(student => ({
+        student_id: student.id,
+        date: selectedDate,
+        status: 'present',
+        notes: ''
+      }));
+
+      // Save attendance for all unmarked students
+      const saveResponse = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records })
       });
-      return;
+
+      if (saveResponse.ok) {
+        toast({
+          title: "Success",
+          description: `Marked ${unmarkedStudents.length} students from all classes as present for ${selectedDate}`,
+        });
+        
+        // Refresh the current class view
+        fetchExistingAttendance();
+      } else {
+        const errorData = await saveResponse.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to save attendance",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    setStudentStatus(newStatus);
-    
-    // Auto-save after marking
-    await saveAttendanceWithStatus(newStatus, `Marked ${unmarkedCount} students as present`);
   };
 
-  // Mark all UNMARKED students as absent and auto-save
+  // Mark all UNMARKED students from ALL CLASSES as absent and auto-save
   const handleMarkAllAbsent = async () => {
-    const newStatus = { ...studentStatus }; // Keep existing status
-    let unmarkedCount = 0;
-    
-    classStudents.forEach(student => {
-      // Only mark as absent if student doesn't have any status yet
-      if (!studentStatus[student.id]) {
-        newStatus[student.id] = 'absent';
-        unmarkedCount++;
+    setLoading(true);
+    try {
+      // Get existing attendance for this date across ALL classes
+      const response = await fetch(`/api/attendance?date=${selectedDate}`);
+      const existingData = await response.json();
+      
+      // Create a set of student IDs who already have attendance
+      const markedStudentIds = new Set();
+      if (response.ok && existingData.data) {
+        existingData.data.forEach((record: any) => {
+          markedStudentIds.add(record.student_id);
+        });
       }
-    });
-    
-    if (unmarkedCount === 0) {
-      toast({
-        title: "No Action Needed",
-        description: "All students already have attendance marked",
+      
+      // Find all unmarked students from ALL classes
+      const unmarkedStudents = students.filter(student => !markedStudentIds.has(student.id));
+      
+      if (unmarkedStudents.length === 0) {
+        toast({
+          title: "No Action Needed",
+          description: "All students in all classes already have attendance marked",
+        });
+        setLoading(false);
+        return;
+      }
+      
+      // Prepare records for ALL unmarked students
+      const records = unmarkedStudents.map(student => ({
+        student_id: student.id,
+        date: selectedDate,
+        status: 'absent',
+        notes: ''
+      }));
+
+      // Save attendance for all unmarked students
+      const saveResponse = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records })
       });
-      return;
+
+      if (saveResponse.ok) {
+        toast({
+          title: "Success",
+          description: `Marked ${unmarkedStudents.length} students from all classes as absent for ${selectedDate}`,
+        });
+        
+        // Refresh the current class view
+        fetchExistingAttendance();
+      } else {
+        const errorData = await saveResponse.json();
+        toast({
+          title: "Error",
+          description: errorData.message || "Failed to save attendance",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-    
-    setStudentStatus(newStatus);
-    
-    // Auto-save after marking
-    await saveAttendanceWithStatus(newStatus, `Marked ${unmarkedCount} students as absent`);
   };
 
   // Helper function to save attendance with custom status
