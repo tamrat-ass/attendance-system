@@ -32,24 +32,28 @@ export function SimpleEthiopianDateInput({
 }: SimpleEthiopianDateInputProps) {
   const [ethDate, setEthDate] = useState<SimpleEthiopianDate>(() => {
     const today = getCurrentSimpleEthiopianDate();
-    console.log('Initial Ethiopian date:', today);
-    if (value) {
-      const converted = gregorianToSimpleEthiopian(value);
-      console.log('Converted from value:', converted);
-      return converted;
-    }
+    console.log('Initial Ethiopian date (always today):', today);
+    // Always start with today's date, ignore cached value on first load
     return today;
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const months = useAmharic ? ETHIOPIAN_MONTHS : ETHIOPIAN_MONTHS_EN;
 
-  // Update Ethiopian date when value prop changes OR when popover opens
+  // Update Ethiopian date when value prop changes (but only if it's different from today)
   useEffect(() => {
     if (value) {
       const converted = gregorianToSimpleEthiopian(value);
-      console.log('Effect - updating from value:', converted);
-      setEthDate(converted);
+      const today = getCurrentSimpleEthiopianDate();
+      
+      // Only update if the converted date is different from today
+      if (converted.year !== today.year || converted.month !== today.month || converted.day !== today.day) {
+        console.log('Effect - updating from value (not today):', converted);
+        setEthDate(converted);
+      } else {
+        console.log('Effect - keeping today date:', today);
+        setEthDate(today);
+      }
     }
   }, [value]);
   
