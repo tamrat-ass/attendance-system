@@ -235,8 +235,8 @@ export default function AttendanceMarking() {
     }
   };
 
-  // Mark all UNMARKED students from ALL CLASSES as present and auto-save
-  const handleMarkAllPresent = async () => {
+  // Mark all UNMARKED students from ALL CLASSES as permission and auto-save
+  const handleMarkAllPermission = async () => {
     setLoading(true);
     try {
       // Get existing attendance for this date across ALL classes
@@ -267,7 +267,7 @@ export default function AttendanceMarking() {
       const records = unmarkedStudents.map(student => ({
         student_id: student.id,
         date: selectedDate,
-        status: 'present',
+        status: 'permission',
         notes: ''
       }));
 
@@ -281,77 +281,7 @@ export default function AttendanceMarking() {
       if (saveResponse.ok) {
         toast({
           title: "Success",
-          description: `Marked ${unmarkedStudents.length} students from all classes as present for ${selectedDate}`,
-        });
-        
-        // Refresh the current class view
-        fetchExistingAttendance();
-      } else {
-        const errorData = await saveResponse.json();
-        toast({
-          title: "Error",
-          description: errorData.message || "Failed to save attendance",
-          variant: "destructive"
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to connect to server",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Mark all UNMARKED students from ALL CLASSES as absent and auto-save
-  const handleMarkAllAbsent = async () => {
-    setLoading(true);
-    try {
-      // Get existing attendance for this date across ALL classes
-      const response = await fetch(`/api/attendance?date=${selectedDate}`);
-      const existingData = await response.json();
-      
-      // Create a set of student IDs who already have attendance
-      const markedStudentIds = new Set();
-      if (response.ok && existingData.data) {
-        existingData.data.forEach((record: any) => {
-          markedStudentIds.add(record.student_id);
-        });
-      }
-      
-      // Find all unmarked students from ALL classes
-      const unmarkedStudents = students.filter(student => !markedStudentIds.has(student.id));
-      
-      if (unmarkedStudents.length === 0) {
-        toast({
-          title: "No Action Needed",
-          description: "All students in all classes already have attendance marked",
-        });
-        setLoading(false);
-        return;
-      }
-      
-      // Prepare records for ALL unmarked students
-      const records = unmarkedStudents.map(student => ({
-        student_id: student.id,
-        date: selectedDate,
-        status: 'absent',
-        notes: ''
-      }));
-
-      // Save attendance for all unmarked students
-      const saveResponse = await fetch('/api/attendance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ records })
-      });
-
-      if (saveResponse.ok) {
-        toast({
-          title: "Success",
-          description: `Marked ${unmarkedStudents.length} students from all classes as absent for ${selectedDate}`,
+          description: `Marked ${unmarkedStudents.length} students from all classes as permission for ${selectedDate}`,
         });
         
         // Refresh the current class view
@@ -581,11 +511,8 @@ export default function AttendanceMarking() {
                 </CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handleMarkAllPresent} size="sm">
-                  Mark All Present
-                </Button>
-                <Button variant="outline" onClick={handleMarkAllAbsent} size="sm">
-                  Mark All Absent
+                <Button variant="outline" onClick={handleMarkAllPermission} size="sm">
+                  Mark All Permission
                 </Button>
               </div>
             </div>
