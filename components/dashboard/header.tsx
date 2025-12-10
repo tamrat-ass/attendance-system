@@ -78,7 +78,7 @@ export default function Header({ onLogout }: HeaderProps) {
             height={40}
           />
           <div>{/* Title and date */}
-            <h1 className="text-xl font-bold text-foreground">MK Member Attendance Management</h1>
+            <h1 className="text-xl font-bold text-foreground">MK Attendance</h1>
             <div className="text-sm text-muted-foreground">
               <p className="font-medium text-foreground">{ethiopianToday}</p>
               <p className="text-xs">{gregorianToday}</p>

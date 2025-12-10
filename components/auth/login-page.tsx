@@ -348,7 +348,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               height={64}
             />
           </div>
-          <CardTitle className="text-2xl">MK Member Attendance Management</CardTitle>
+          <CardTitle className="text-2xl">MK Attendance</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
