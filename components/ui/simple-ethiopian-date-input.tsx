@@ -292,6 +292,7 @@ export function SimpleEthiopianDateInput({
       >
         Today
       </Button>
+      </div>
     </div>
   );
 }
