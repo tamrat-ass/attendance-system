@@ -31,24 +31,24 @@ export function SimpleEthiopianDateInput({
   useAmharic = true,
   className = ""
 }: SimpleEthiopianDateInputProps) {
-  // Start with SMART default date (considers late-night work)
+  // Start with today's actual date
   const [ethDate, setEthDate] = useState<SimpleEthiopianDate>(() => {
-    const smartDate = getSmartDefaultDate();
-    console.log('Date picker initialized with SMART DEFAULT:', smartDate);
-    return smartDate;
+    const todayDate = getCurrentSimpleEthiopianDate();
+    console.log('Date picker initialized with TODAY:', todayDate);
+    return todayDate;
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const months = useAmharic ? ETHIOPIAN_MONTHS : ETHIOPIAN_MONTHS_EN;
 
-  // Force sync to smart default date on component mount
+  // Force sync to today's actual date on component mount
   useEffect(() => {
-    const smartDate = getSmartDefaultDate();
-    console.log('Force syncing to SMART DEFAULT:', smartDate);
-    setEthDate(smartDate);
+    const todayDate = getCurrentSimpleEthiopianDate();
+    console.log('Force syncing to TODAY:', todayDate);
+    setEthDate(todayDate);
     
-    // Notify parent component with smart default date
-    const gregorianDate = simpleEthiopianToGregorian(smartDate);
+    // Notify parent component with today's date
+    const gregorianDate = simpleEthiopianToGregorian(todayDate);
     onChange(gregorianDate);
   }, []); // Empty dependency array - only run once on mount
 
