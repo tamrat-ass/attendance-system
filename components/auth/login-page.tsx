@@ -344,7 +344,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               className="w-16 h-16 rounded-lg object-contain"
             />
           </div>
-          <CardTitle className="text-2xl">Attendance System</CardTitle>
+          <CardTitle className="text-2xl">MK Member Attendance Management</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
