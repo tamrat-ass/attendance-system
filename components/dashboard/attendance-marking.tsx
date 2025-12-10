@@ -235,28 +235,106 @@ export default function AttendanceMarking() {
     }
   };
 
-  // Mark all UNMARKED students as present (don't change already marked students)
-  const handleMarkAllPresent = () => {
+  // Mark all UNMARKED students as present and auto-save
+  const handleMarkAllPresent = async () => {
     const newStatus = { ...studentStatus }; // Keep existing status
+    let unmarkedCount = 0;
+    
     classStudents.forEach(student => {
       // Only mark as present if student doesn't have any status yet
       if (!studentStatus[student.id]) {
         newStatus[student.id] = 'present';
+        unmarkedCount++;
       }
     });
+    
+    if (unmarkedCount === 0) {
+      toast({
+        title: "No Action Needed",
+        description: "All students already have attendance marked",
+      });
+      return;
+    }
+    
     setStudentStatus(newStatus);
+    
+    // Auto-save after marking
+    await saveAttendanceWithStatus(newStatus, `Marked ${unmarkedCount} students as present`);
   };
 
-  // Mark all UNMARKED students as absent (don't change already marked students)
-  const handleMarkAllAbsent = () => {
+  // Mark all UNMARKED students as absent and auto-save
+  const handleMarkAllAbsent = async () => {
     const newStatus = { ...studentStatus }; // Keep existing status
+    let unmarkedCount = 0;
+    
     classStudents.forEach(student => {
       // Only mark as absent if student doesn't have any status yet
       if (!studentStatus[student.id]) {
         newStatus[student.id] = 'absent';
+        unmarkedCount++;
       }
     });
+    
+    if (unmarkedCount === 0) {
+      toast({
+        title: "No Action Needed",
+        description: "All students already have attendance marked",
+      });
+      return;
+    }
+    
     setStudentStatus(newStatus);
+    
+    // Auto-save after marking
+    await saveAttendanceWithStatus(newStatus, `Marked ${unmarkedCount} students as absent`);
+  };
+
+  // Helper function to save attendance with custom status
+  const saveAttendanceWithStatus = async (statusToSave: { [key: number]: 'present' | 'absent' | 'late' | 'permission' }, successMessage: string) => {
+    setLoading(true);
+    try {
+      // Prepare records for API
+      const records = Object.keys(statusToSave).map(studentId => ({
+        student_id: parseInt(studentId),
+        date: selectedDate,
+        status: statusToSave[parseInt(studentId)],
+        notes: notes[parseInt(studentId)] || ''
+      }));
+
+      const response = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `${successMessage} and saved for ${selectedDate}`,
+        });
+
+        // Lock the students that were just saved
+        const newLocked = new Set(lockedStudents);
+        Object.keys(statusToSave).forEach(id => newLocked.add(parseInt(id)));
+        setLockedStudents(newLocked);
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to save attendance",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Export attendance to CSV (current class only)
