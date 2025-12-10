@@ -56,25 +56,29 @@ export default function AttendanceMarking() {
     setLoading(true);
     try {
       const data = await measureApiCall(
-        () => fetch('/api/students?limit=10000').then(res => res.json()),
+        async () => {
+          const response = await fetch('/api/students?limit=10000');
+          if (!response.ok) {
+            throw new Error('Failed to fetch students');
+          }
+          return response.json();
+        },
         'fetchStudents'
       );
       
-      if (response.ok) {
-        const studentsData = data.data || [];
-        setStudents(studentsData);
-        
-        // Extract unique classes and sort them
-        const uniqueClasses = [...new Set(studentsData.map((s: Student) => s.class))].sort() as string[];
-        setClasses(uniqueClasses);
-        
-        console.log('Total students loaded:', studentsData.length);
-        console.log('Unique classes found:', uniqueClasses);
-        
-        // Set first class as default
-        if (uniqueClasses.length > 0 && !selectedClass) {
-          setSelectedClass(uniqueClasses[0] as string);
-        }
+      const studentsData = data.data || [];
+      setStudents(studentsData);
+      
+      // Extract unique classes and sort them
+      const uniqueClasses = [...new Set(studentsData.map((s: Student) => s.class))].sort() as string[];
+      setClasses(uniqueClasses);
+      
+      console.log('Total students loaded:', studentsData.length);
+      console.log('Unique classes found:', uniqueClasses);
+      
+      // Set first class as default
+      if (uniqueClasses.length > 0 && !selectedClass) {
+        setSelectedClass(uniqueClasses[0] as string);
       }
     } catch (err: any) {
       toast({
