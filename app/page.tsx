@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import LoginPage from '@/components/auth/login-page';
-import Dashboard from '@/components/dashboard/dashboard';
 import { SessionManager } from '@/lib/session-manager';
 import { usePagePerformance } from '@/hooks/use-performance';
+
+// Lazy load Dashboard for better performance
+const Dashboard = lazy(() => import('@/components/dashboard/dashboard'));
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -53,5 +55,16 @@ export default function Home() {
     return <LoginPage onLogin={handleLogin} />;
   }
 
-  return <Dashboard onLogout={handleLogout} />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading Dashboard...</p>
+        </div>
+      </div>
+    }>
+      <Dashboard onLogout={handleLogout} />
+    </Suspense>
+  );
 }

@@ -73,6 +73,9 @@ export default function Header({ onLogout }: HeaderProps) {
             src="/apple-icon.png" 
             alt="Logo" 
             className="w-10 h-10 rounded-lg object-contain"
+            loading="eager"
+            width={40}
+            height={40}
           />
           <div>{/* Title and date */}
             <h1 className="text-xl font-bold text-foreground">MK Member Attendance Management</h1>

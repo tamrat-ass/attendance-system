@@ -57,11 +57,25 @@ export default function AttendanceMarking() {
     try {
       const data = await measureApiCall(
         async () => {
+          // Check cache first
+          const { apiCache } = await import('@/lib/cache');
+          const cacheKey = 'students-list';
+          const cached = apiCache.get(cacheKey);
+          
+          if (cached) {
+            console.log('Using cached students data');
+            return cached;
+          }
+
           const response = await fetch('/api/students?limit=10000');
           if (!response.ok) {
             throw new Error('Failed to fetch students');
           }
-          return response.json();
+          const result = await response.json();
+          
+          // Cache for 5 minutes
+          apiCache.set(cacheKey, result, 300);
+          return result;
         },
         'fetchStudents'
       );

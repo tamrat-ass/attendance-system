@@ -342,6 +342,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               src="/apple-icon.png" 
               alt="Logo" 
               className="w-16 h-16 rounded-lg object-contain"
+              loading="eager"
+              fetchPriority="high"
+              width={64}
+              height={64}
             />
           </div>
           <CardTitle className="text-2xl">MK Member Attendance Management</CardTitle>
