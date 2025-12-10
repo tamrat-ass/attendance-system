@@ -67,48 +67,97 @@ export default function Header({ onLogout }: HeaderProps) {
 // Render header with title, date, and logout button
   return (
     <header className="border-b border-border bg-card">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img 
-            src="/apple-icon.png" 
-            alt="Logo" 
-            className="w-10 h-10 rounded-lg object-contain"
-            loading="eager"
-            width={40}
-            height={40}
-          />
-          <div>{/* Title and date */}
-            <h1 className="text-xl font-bold text-foreground">MK Attendance</h1>
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">{ethiopianToday}</p>
-              <p className="text-xs">{gregorianToday}</p>
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+        {/* Mobile Layout */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img 
+                src="/apple-icon.png" 
+                alt="Logo" 
+                className="w-8 h-8 rounded-lg object-contain"
+                loading="eager"
+                width={32}
+                height={32}
+              />
+              <h1 className="text-lg font-bold text-foreground">MK Attendance</h1>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                className="p-2"
+                title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              >
+                {theme === 'light' ? (
+                  <Moon className="w-4 h-4" />
+                ) : (
+                  <Sun className="w-4 h-4" />
+                )}
+              </Button>
+              <ChangePasswordDialog />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+                className="p-2"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
+          <div className="text-sm text-muted-foreground">
+            <p className="font-medium text-foreground text-xs">{ethiopianToday}</p>
+            <p className="text-xs">{gregorianToday}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleTheme}
-            className="flex items-center gap-2"
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? (
-              <Moon className="w-4 h-4" />
-            ) : (
-              <Sun className="w-4 h-4" />
-            )}
-          </Button>
-          <ChangePasswordDialog />
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleLogout}
-            className="flex items-center gap-2"
-          >{/* Logout button */}
-            <LogOut className="w-4 h-4" />
-            Logout
-          </Button>
+
+        {/* Desktop Layout */}
+        <div className="hidden sm:flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img 
+              src="/apple-icon.png" 
+              alt="Logo" 
+              className="w-10 h-10 rounded-lg object-contain"
+              loading="eager"
+              width={40}
+              height={40}
+            />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">MK Attendance</h1>
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">{ethiopianToday}</p>
+                <p className="text-xs">{gregorianToday}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleTheme}
+              className="flex items-center gap-2"
+              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {theme === 'light' ? (
+                <Moon className="w-4 h-4" />
+              ) : (
+                <Sun className="w-4 h-4" />
+              )}
+            </Button>
+            <ChangePasswordDialog />
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
     </header>

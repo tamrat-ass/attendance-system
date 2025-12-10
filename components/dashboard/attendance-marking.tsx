@@ -483,14 +483,14 @@ export default function AttendanceMarking() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-2 sm:p-0">
       <Card className="border-2">
-        <CardHeader>
-          <CardTitle>Mark Attendance</CardTitle>
-          <CardDescription>Select date and class to mark attendance</CardDescription>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg sm:text-xl">Mark Attendance</CardTitle>
+          <CardDescription className="text-sm">Select date and class to mark attendance</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             <div className="space-y-2">
               <SimpleEthiopianDateInput
                 key={selectedDate}
@@ -502,9 +502,9 @@ export default function AttendanceMarking() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="class">Class</Label>
+              <Label htmlFor="class" className="text-sm font-medium">Class</Label>
               <Select value={selectedClass} onValueChange={setSelectedClass}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10">
                   <SelectValue placeholder="Select class" />
                 </SelectTrigger>
                 <SelectContent>
@@ -515,13 +515,14 @@ export default function AttendanceMarking() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="searchStudent">Search Student</Label>
+            <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+              <Label htmlFor="searchStudent" className="text-sm font-medium">Search Student</Label>
               <Input
                 id="searchStudent"
                 placeholder="Search by ID, name, or phone..."
                 value={searchStudent}
                 onChange={(e) => setSearchStudent(e.target.value)}
+                className="h-10"
               />
             </div>
           </div>
@@ -536,41 +537,131 @@ export default function AttendanceMarking() {
         </Card>
       ) : classStudents.length > 0 ? (
         <Card className="border-2">
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <CardTitle>{selectedClass} - {classStudents.length} Students</CardTitle>
-                <CardDescription>
-                  Mark attendance for {formatSimpleEthiopianDate(gregorianToSimpleEthiopian(selectedDate), true)}
-                </CardDescription>
+          <CardHeader className="pb-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-lg sm:text-xl">{selectedClass} - {classStudents.length} Students</CardTitle>
+                  <CardDescription className="text-sm">
+                    Mark attendance for {formatSimpleEthiopianDate(gregorianToSimpleEthiopian(selectedDate), true)}
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={handleMarkAllPermission} size="sm" className="text-xs sm:text-sm">
+                    Mark All Permission
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleMarkAllPermission} size="sm">
-                  Mark All Permission
-                </Button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-4 mt-4 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-green-600 text-white flex items-center justify-center">✓</div>
-                <span>Present</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-red-600 text-white flex items-center justify-center">✗</div>
-                <span>Absent</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-yellow-600 text-white flex items-center justify-center">⏰</div>
-                <span>Late</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded bg-blue-600 text-white flex items-center justify-center">📝</div>
-                <span>Permission</span>
+              
+              {/* Status Legend - Mobile Optimized */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-green-600 text-white flex items-center justify-center text-xs">✓</div>
+                  <span>Present</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-red-600 text-white flex items-center justify-center text-xs">✗</div>
+                  <span>Absent</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-yellow-600 text-white flex items-center justify-center text-xs">⏰</div>
+                  <span>Late</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 rounded bg-blue-600 text-white flex items-center justify-center text-xs">📝</div>
+                  <span>Permission</span>
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border overflow-x-auto">
+            {/* Mobile Card Layout */}
+            <div className="block lg:hidden space-y-3">
+              {classStudents.map((student) => (
+                <Card key={student.id} className="border">
+                  <CardContent className="p-4">
+                    <div className="flex flex-col gap-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-medium text-sm">{student.full_name}</h3>
+                          <p className="text-xs text-muted-foreground">ID: {student.id} • {student.class} • {student.phone}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={studentStatus[student.id] === 'present' ? 'default' : 'outline'}
+                          className={
+                            studentStatus[student.id] === 'present' 
+                              ? 'bg-green-600 hover:bg-green-700 text-white border-green-600 h-8 text-xs' 
+                              : 'hover:bg-green-50 hover:text-green-700 hover:border-green-300 h-8 text-xs'
+                          }
+                          onClick={() => handleStatusChange(student.id, 'present')}
+                          disabled={lockedStudents.has(student.id)}
+                        >
+                          ✓
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={studentStatus[student.id] === 'absent' ? 'default' : 'outline'}
+                          className={
+                            studentStatus[student.id] === 'absent' 
+                              ? 'bg-red-600 hover:bg-red-700 text-white border-red-600 h-8 text-xs' 
+                              : 'hover:bg-red-50 hover:text-red-700 hover:border-red-300 h-8 text-xs'
+                          }
+                          onClick={() => handleStatusChange(student.id, 'absent')}
+                          disabled={lockedStudents.has(student.id)}
+                        >
+                          ✗
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={studentStatus[student.id] === 'late' ? 'default' : 'outline'}
+                          className={
+                            studentStatus[student.id] === 'late' 
+                              ? 'bg-yellow-600 hover:bg-yellow-700 text-white border-yellow-600 h-8 text-xs' 
+                              : 'hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300 h-8 text-xs'
+                          }
+                          onClick={() => handleStatusChange(student.id, 'late')}
+                          disabled={lockedStudents.has(student.id)}
+                        >
+                          ⏰
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={studentStatus[student.id] === 'permission' ? 'default' : 'outline'}
+                          className={
+                            studentStatus[student.id] === 'permission' 
+                              ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600 h-8 text-xs' 
+                              : 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 h-8 text-xs'
+                          }
+                          onClick={() => handleStatusChange(student.id, 'permission')}
+                          disabled={lockedStudents.has(student.id)}
+                        >
+                          📝
+                        </Button>
+                      </div>
+                      
+                      <Input
+                        placeholder="Add note (optional)"
+                        value={notes[student.id] || ''}
+                        onChange={(e) => handleNotesChange(student.id, e.target.value)}
+                        className="text-sm h-8"
+                        disabled={lockedStudents.has(student.id)}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop Table Layout */}
+            <div className="hidden lg:block rounded-lg border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -666,17 +757,19 @@ export default function AttendanceMarking() {
               </Table>
             </div>
 
-            <div className="mt-4 flex gap-2 flex-wrap">
-              <Button onClick={handleSaveAttendance} size="lg">
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
+              <Button onClick={handleSaveAttendance} size="sm" className="w-full sm:w-auto">
                 💾 Save Attendance
               </Button>
-              <Button onClick={handleExportToExcel} variant="outline" size="lg" className="flex items-center gap-2">
+              <Button onClick={handleExportToExcel} variant="outline" size="sm" className="flex items-center justify-center gap-2 w-full sm:w-auto">
                 <Download className="w-4 h-4" />
-                Export CSV (Current Class)
+                <span className="hidden sm:inline">Export CSV (Current Class)</span>
+                <span className="sm:hidden">Export Current</span>
               </Button>
-              <Button onClick={handleExportAllAttendance} variant="outline" size="lg" className="flex items-center gap-2">
+              <Button onClick={handleExportAllAttendance} variant="outline" size="sm" className="flex items-center justify-center gap-2 w-full sm:w-auto">
                 <Download className="w-4 h-4" />
-                Export CSV (All Classes)
+                <span className="hidden sm:inline">Export CSV (All Classes)</span>
+                <span className="sm:hidden">Export All</span>
               </Button>
             </div>
           </CardContent>
