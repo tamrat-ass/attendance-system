@@ -215,17 +215,15 @@ export function SimpleEthiopianDateInput({
               <div className="grid grid-cols-5 gap-2 mt-2">
                 {dayOptions.map((day) => {
                   const dayDate = { ...ethDate, day };
-                  const dateInfo = getDateInfo(dayDate);
-                  const isToday = checkIsToday(dayDate);
+                  const today = getCurrentSimpleEthiopianDate();
+                  const isToday = today.year === ethDate.year && 
+                                  today.month === ethDate.month && 
+                                  today.day === day;
                   const isSelected = ethDate.day === day;
                   
                   let buttonClass = 'bg-white dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600';
                   
-                  if (dateInfo.status === 'DISABLED') {
-                    buttonClass = 'bg-gray-200 text-gray-400 cursor-not-allowed';
-                  } else if (dateInfo.status === 'EFFECTIVE') {
-                    buttonClass = 'bg-blue-600 text-white hover:bg-blue-700 border-blue-600 font-bold';
-                  } else if (isToday) {
+                  if (isToday) {
                     buttonClass = 'bg-red-900 text-white hover:bg-red-800 border-red-900';
                   } else if (isSelected) {
                     buttonClass = 'bg-green-600 text-white hover:bg-green-700 border-green-600';
@@ -238,8 +236,7 @@ export function SimpleEthiopianDateInput({
                       size="sm"
                       className={`h-9 w-full p-0 text-xs ${buttonClass}`}
                       onClick={() => handleDayClick(day)}
-                      disabled={dateInfo.status === 'DISABLED'}
-                      title={dateInfo.reason || ''}
+                      title={isToday ? 'Today' : ''}
                     >
                       {day}
                     </Button>
