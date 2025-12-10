@@ -14,6 +14,7 @@ import {
   simpleEthiopianToGregorian,
   gregorianToSimpleEthiopian
 } from '@/lib/simple-ethiopian-date';
+import { getSmartDefaultDate, getDateInfo, isToday as checkIsToday } from '@/lib/advanced-date-system';
 
 interface SimpleEthiopianDateInputProps {
   value?: string; // Gregorian ISO string for compatibility
@@ -32,8 +33,6 @@ export function SimpleEthiopianDateInput({
 }: SimpleEthiopianDateInputProps) {
   // Start with SMART default date (considers late-night work)
   const [ethDate, setEthDate] = useState<SimpleEthiopianDate>(() => {
-    // Import the smart date system
-    const { getSmartDefaultDate } = require('@/lib/advanced-date-system');
     const smartDate = getSmartDefaultDate();
     console.log('Date picker initialized with SMART DEFAULT:', smartDate);
     return smartDate;
@@ -44,7 +43,6 @@ export function SimpleEthiopianDateInput({
 
   // Force sync to smart default date on component mount
   useEffect(() => {
-    const { getSmartDefaultDate } = require('@/lib/advanced-date-system');
     const smartDate = getSmartDefaultDate();
     console.log('Force syncing to SMART DEFAULT:', smartDate);
     setEthDate(smartDate);
@@ -216,7 +214,6 @@ export function SimpleEthiopianDateInput({
               <Label className="text-xs text-muted-foreground">ቀን (Day)</Label>
               <div className="grid grid-cols-5 gap-2 mt-2">
                 {dayOptions.map((day) => {
-                  const { getDateInfo, isToday: checkIsToday } = require('@/lib/advanced-date-system');
                   const dayDate = { ...ethDate, day };
                   const dateInfo = getDateInfo(dayDate);
                   const isToday = checkIsToday(dayDate);
