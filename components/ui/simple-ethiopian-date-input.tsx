@@ -30,77 +30,85 @@ export function SimpleEthiopianDateInput({
   useAmharic = true,
   className = ""
 }: SimpleEthiopianDateInputProps) {
+  // Always start with today's date for simplicity
   const [ethDate, setEthDate] = useState<SimpleEthiopianDate>(() => {
-    const today = getCurrentSimpleEthiopianDate();
-    console.log('Initial Ethiopian date (always today):', today);
-    // Always start with today's date, ignore cached value on first load
-    return today;
+    return getCurrentSimpleEthiopianDate();
   });
   const [isOpen, setIsOpen] = useState(false);
 
   const months = useAmharic ? ETHIOPIAN_MONTHS : ETHIOPIAN_MONTHS_EN;
 
-  // Update Ethiopian date when value prop changes (but only if it's different from today)
+  // Simple sync: always use today's date unless user explicitly changes it
   useEffect(() => {
     if (value) {
       const converted = gregorianToSimpleEthiopian(value);
-      const today = getCurrentSimpleEthiopianDate();
-      
-      // Only update if the converted date is different from today
-      if (converted.year !== today.year || converted.month !== today.month || converted.day !== today.day) {
-        console.log('Effect - updating from value (not today):', converted);
-        setEthDate(converted);
-      } else {
-        console.log('Effect - keeping today date:', today);
-        setEthDate(today);
-      }
+      setEthDate(converted);
+    } else {
+      // No value provided, use today
+      setEthDate(getCurrentSimpleEthiopianDate());
     }
   }, [value]);
-  
-  // Sync to today when popover opens if no value
-  useEffect(() => {
-    if (isOpen && !value) {
-      const today = getCurrentSimpleEthiopianDate();
-      console.log('Effect - syncing to today on open:', today);
-      setEthDate(today);
-    }
-  }, [isOpen]);
 
-  // Handle date changes - NO COMPLEX CONVERSIONS
+  // Simplified date change handling
   const handleDateChange = (newEthDate: SimpleEthiopianDate) => {
-    console.log('=== SIMPLE DATE CHANGE ===');
-    console.log('New Ethiopian date:', newEthDate);
-    
-    // Update local state
     setEthDate(newEthDate);
-    
-    // Convert to Gregorian for database compatibility
     const gregorianString = simpleEthiopianToGregorian(newEthDate);
-    console.log('Gregorian for database:', gregorianString);
-    
     onChange(gregorianString);
   };
 
   const handleYearChange = (year: number) => {
-    const newDate = { ...ethDate, year };
-    handleDateChange(newDate);
+    handleDateChange({ ...ethDate, year });
   };
 
   const handleMonthChange = (month: number) => {
-    const newDate = { ...ethDate, month };
-    handleDateChange(newDate);
+    handleDateChange({ ...ethDate, month });
   };
 
   const handleDayClick = (day: number) => {
-    console.log('=== DAY CLICK - SIMPLE VERSION ===');
-    console.log('Day clicked:', day);
-    console.log('Current Ethiopian date:', ethDate);
-    
-    const newDate = { ...ethDate, day: day };
-    console.log('New Ethiopian date will be:', newDate);
-    
-    handleDateChange(newDate);
+    handleDateChange({ ...ethDate, day });
     setIsOpen(false);
+  };
+
+  // Quick date buttons
+  const goToToday = () => {
+    const today = getCurrentSimpleEthiopianDate();
+    handleDateChange(today);
+    setIsOpen(false);
+  };
+
+  const goToPreviousDay = () => {
+    let newDay = ethDate.day - 1;
+    let newMonth = ethDate.month;
+    let newYear = ethDate.year;
+    
+    if (newDay < 1) {
+      newMonth = newMonth - 1;
+      if (newMonth < 1) {
+        newMonth = 13;
+        newYear = newYear - 1;
+      }
+      newDay = newMonth === 13 ? 6 : 30;
+    }
+    
+    handleDateChange({ year: newYear, month: newMonth, day: newDay });
+  };
+
+  const goToNextDay = () => {
+    const maxDays = ethDate.month === 13 ? 6 : 30;
+    let newDay = ethDate.day + 1;
+    let newMonth = ethDate.month;
+    let newYear = ethDate.year;
+    
+    if (newDay > maxDays) {
+      newDay = 1;
+      newMonth = newMonth + 1;
+      if (newMonth > 13) {
+        newMonth = 1;
+        newYear = newYear + 1;
+      }
+    }
+    
+    handleDateChange({ year: newYear, month: newMonth, day: newDay });
   };
 
   // Generate year options
@@ -127,22 +135,34 @@ export function SimpleEthiopianDateInput({
     <div className={`space-y-2 ${className}`}>
       {label && <Label className="text-sm font-medium">{label}</Label>}
       
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={`w-full justify-between text-left font-normal ${
-              isToday ? 'border-red-400 border-2 hover:border-red-500' : ''
-            }`}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{formatSimpleEthiopianDate(ethDate, useAmharic)}</span>
-            </div>
-            <ChevronDown className="h-4 w-4 opacity-50" />
-          </Button>
-        </PopoverTrigger>
+      {/* Quick navigation buttons */}
+      <div className="flex gap-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={goToPreviousDay}
+          className="px-2"
+          title="Previous Day"
+        >
+          ←
+        </Button>
+        
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={`flex-1 justify-between text-left font-normal ${
+                isToday ? 'border-red-400 border-2 hover:border-red-500' : ''
+              }`}
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span>{formatSimpleEthiopianDate(ethDate, useAmharic)}</span>
+              </div>
+              <ChevronDown className="h-4 w-4 opacity-50" />
+            </Button>
+          </PopoverTrigger>
         
         <PopoverContent className="w-80 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg" align="start">
           <div className="space-y-4">
@@ -230,6 +250,26 @@ export function SimpleEthiopianDateInput({
           </div>
         </PopoverContent>
       </Popover>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goToNextDay}
+        className="px-2"
+        title="Next Day"
+      >
+        →
+      </Button>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={goToToday}
+        className="px-3"
+        title="Go to Today"
+      >
+        Today
+      </Button>
     </div>
   );
 }
