@@ -49,6 +49,8 @@ export default function AttendanceMarking() {
   const [searchStudent, setSearchStudent] = useState('');
   const [classes, setClasses] = useState<string[]>([]);
   const [lockedStudents, setLockedStudents] = useState<Set<number>>(new Set());
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   const { toast } = useToast();
 
   // Fetch students from database
@@ -112,7 +114,47 @@ export default function AttendanceMarking() {
     const currentEthDate = getCurrentSimpleEthiopianDate();
     const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
     setSelectedDate(gregorianDate);
+
   }, []);
+
+  // Set up auto-refresh for attendance data - more frequent sync
+  useEffect(() => {
+    if (!selectedDate || !selectedClass) return;
+
+    let refreshInterval: NodeJS.Timeout;
+    let syncCheckInterval: NodeJS.Timeout;
+
+    // Regular refresh every 15 seconds
+    refreshInterval = setInterval(() => {
+      console.log('Auto-refreshing attendance data...');
+      fetchExistingAttendance();
+    }, 15000);
+
+    // Quick sync check every 5 seconds to detect mobile app changes
+    syncCheckInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/attendance/sync?since=${lastSyncTime?.toISOString() || ''}`);
+        const data = await response.json();
+        
+        if (data.hasUpdates) {
+          console.log('Detected attendance updates from mobile app, refreshing...');
+          fetchExistingAttendance();
+          toast({
+            title: "📱 Mobile Update Detected",
+            description: `Attendance updated from mobile app (${data.count} changes)`,
+            duration: 3000,
+          });
+        }
+      } catch (error) {
+        console.log('Sync check failed:', error);
+      }
+    }, 5000);
+
+    return () => {
+      clearInterval(refreshInterval);
+      clearInterval(syncCheckInterval);
+    };
+  }, [selectedDate, selectedClass, lastSyncTime]);
 
   // Fetch existing attendance for selected date and class
   const fetchExistingAttendance = async () => {
@@ -124,7 +166,12 @@ export default function AttendanceMarking() {
     console.log('Fetching attendance for:', selectedDate, selectedClass);
 
     try {
-      const response = await fetch(`/api/attendance?date=${selectedDate}&class=${selectedClass}`);
+      const response = await fetch(`/api/attendance?date=${selectedDate}&class=${selectedClass}&_t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       const data = await response.json();
 
       console.log('Attendance API response:', data);
@@ -146,12 +193,14 @@ export default function AttendanceMarking() {
         setStudentStatus(existingStatus);
         setNotes(existingNotes);
         setLockedStudents(locked);
+        setLastSyncTime(new Date());
       } else {
         // No existing attendance, unlock all
         console.log('No existing attendance found, unlocking all');
         setStudentStatus({});
         setNotes({});
         setLockedStudents(new Set());
+        setLastSyncTime(new Date());
       }
     } catch (error) {
       console.error('Error fetching existing attendance:', error);
@@ -183,18 +232,42 @@ export default function AttendanceMarking() {
 
   // Handle status change for a student
   const handleStatusChange = (studentId: number, status: string) => {
-    setStudentStatus({
-      ...studentStatus,
-      [studentId]: status as any
-    });
+    // Only allow changes if not locked or in edit mode
+    if (!lockedStudents.has(studentId) || isEditMode) {
+      setStudentStatus({
+        ...studentStatus,
+        [studentId]: status as any
+      });
+      
+      // If this is a new selection (not in edit mode), lock the student immediately
+      if (!isEditMode) {
+        setLockedStudents(prev => new Set([...prev, studentId]));
+      }
+    }
   };
 
   // Handle notes change for a student
   const handleNotesChange = (studentId: number, note: string) => {
-    setNotes({
-      ...notes,
-      [studentId]: note
-    });
+    // Only allow changes if not locked or in edit mode
+    if (!lockedStudents.has(studentId) || isEditMode) {
+      setNotes({
+        ...notes,
+        [studentId]: note
+      });
+    }
+  };
+
+  // Toggle edit mode
+  const handleToggleEditMode = () => {
+    setIsEditMode(!isEditMode);
+  };
+
+  // Clear all selections and unlock all students
+  const handleClearAll = () => {
+    setStudentStatus({});
+    setNotes({});
+    setLockedStudents(new Set());
+    setIsEditMode(false);
   };
 
   // Save attendance records
@@ -234,11 +307,19 @@ export default function AttendanceMarking() {
           description: `Attendance saved for ${markedCount} students on ${selectedDate}`,
         });
 
-        // Lock only the students that were just saved
-        console.log('Attendance saved successfully, locking students');
+        // Lock all students and exit edit mode
+        console.log('Attendance saved successfully, locking all students');
         const newLocked = new Set(lockedStudents);
         Object.keys(studentStatus).forEach(id => newLocked.add(parseInt(id)));
         setLockedStudents(newLocked);
+        setIsEditMode(false);
+
+        // Clear all caches to ensure fresh data
+        const { apiCache } = await import('@/lib/cache');
+        apiCache.clear(); // Clear all cache entries
+        
+        // Immediate refresh to show latest changes
+        fetchExistingAttendance();
       } else {
         toast({
           title: "Error",
@@ -403,7 +484,7 @@ export default function AttendanceMarking() {
     const headers = Object.keys(data[0]);
     const csv = [
       headers.join(','),
-      ...data.map(row => 
+      ...data.map((row: any) => 
         headers.map(h => `"${row[h as keyof typeof row]}"`).join(',')
       )
     ].join('\n');
@@ -446,7 +527,7 @@ export default function AttendanceMarking() {
         const headers = Object.keys(exportData[0]);
         const csv = [
           headers.join(','),
-          ...exportData.map(row => 
+          ...exportData.map((row: any) => 
             headers.map(h => `"${row[h as keyof typeof row]}"`).join(',')
           )
         ].join('\n');
@@ -544,11 +625,37 @@ export default function AttendanceMarking() {
                   <CardTitle className="text-lg sm:text-xl">{selectedClass} - {classStudents.length} Students</CardTitle>
                   <CardDescription className="text-sm">
                     Mark attendance for {formatSimpleEthiopianDate(gregorianToSimpleEthiopian(selectedDate), true)}
+                    {lastSyncTime && (
+                      <span className="block text-xs text-green-600 mt-1">
+                        ✓ Last synced: {lastSyncTime.toLocaleTimeString()} • Auto-sync every 5s
+                      </span>
+                    )}
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" onClick={handleMarkAllPermission} size="sm" className="text-xs sm:text-sm">
-                    Mark All Permission
+                  <Button variant="outline" onClick={handleToggleEditMode} size="sm" className="text-xs sm:text-sm">
+                    {isEditMode ? '🔒 Lock Changes' : '✏️ Edit Mode'}
+                  </Button>
+                  <Button variant="outline" onClick={handleClearAll} size="sm" className="text-xs sm:text-sm">
+                    🗑️ Clear All
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={async () => {
+                      // Clear cache and force refresh
+                      const { apiCache } = await import('@/lib/cache');
+                      apiCache.clear();
+                      await fetchExistingAttendance();
+                      toast({
+                        title: "Synced",
+                        description: "Attendance data refreshed from server",
+                      });
+                    }} 
+                    size="sm" 
+                    className="text-xs sm:text-sm"
+                    disabled={loading}
+                  >
+                    🔄 {loading ? 'Syncing...' : 'Sync Now'}
                   </Button>
                 </div>
               </div>
@@ -599,7 +706,7 @@ export default function AttendanceMarking() {
                               : 'hover:bg-green-50 hover:text-green-700 hover:border-green-300 h-8 text-xs'
                           }
                           onClick={() => handleStatusChange(student.id, 'present')}
-                          disabled={lockedStudents.has(student.id)}
+                          disabled={lockedStudents.has(student.id) && !isEditMode}
                         >
                           ✓
                         </Button>
@@ -613,7 +720,7 @@ export default function AttendanceMarking() {
                               : 'hover:bg-red-50 hover:text-red-700 hover:border-red-300 h-8 text-xs'
                           }
                           onClick={() => handleStatusChange(student.id, 'absent')}
-                          disabled={lockedStudents.has(student.id)}
+                          disabled={lockedStudents.has(student.id) && !isEditMode}
                         >
                           ✗
                         </Button>
@@ -627,7 +734,7 @@ export default function AttendanceMarking() {
                               : 'hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300 h-8 text-xs'
                           }
                           onClick={() => handleStatusChange(student.id, 'late')}
-                          disabled={lockedStudents.has(student.id)}
+                          disabled={lockedStudents.has(student.id) && !isEditMode}
                         >
                           ⏰
                         </Button>
@@ -641,7 +748,7 @@ export default function AttendanceMarking() {
                               : 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 h-8 text-xs'
                           }
                           onClick={() => handleStatusChange(student.id, 'permission')}
-                          disabled={lockedStudents.has(student.id)}
+                          disabled={lockedStudents.has(student.id) && !isEditMode}
                         >
                           📝
                         </Button>
@@ -652,7 +759,7 @@ export default function AttendanceMarking() {
                         value={notes[student.id] || ''}
                         onChange={(e) => handleNotesChange(student.id, e.target.value)}
                         className="text-sm h-8"
-                        disabled={lockedStudents.has(student.id)}
+                        disabled={lockedStudents.has(student.id) && !isEditMode}
                       />
                     </div>
                   </CardContent>
@@ -694,7 +801,7 @@ export default function AttendanceMarking() {
                                 : 'hover:bg-green-50 hover:text-green-700 hover:border-green-300'
                             }
                             onClick={() => handleStatusChange(student.id, 'present')}
-                            disabled={lockedStudents.has(student.id)}
+                            disabled={lockedStudents.has(student.id) && !isEditMode}
                           >
                             ✓
                           </Button>
@@ -708,7 +815,7 @@ export default function AttendanceMarking() {
                                 : 'hover:bg-red-50 hover:text-red-700 hover:border-red-300'
                             }
                             onClick={() => handleStatusChange(student.id, 'absent')}
-                            disabled={lockedStudents.has(student.id)}
+                            disabled={lockedStudents.has(student.id) && !isEditMode}
                           >
                             ✗
                           </Button>
@@ -722,7 +829,7 @@ export default function AttendanceMarking() {
                                 : 'hover:bg-yellow-50 hover:text-yellow-700 hover:border-yellow-300'
                             }
                             onClick={() => handleStatusChange(student.id, 'late')}
-                            disabled={lockedStudents.has(student.id)}
+                            disabled={lockedStudents.has(student.id) && !isEditMode}
                           >
                             ⏰
                           </Button>
@@ -736,7 +843,7 @@ export default function AttendanceMarking() {
                                 : 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300'
                             }
                             onClick={() => handleStatusChange(student.id, 'permission')}
-                            disabled={lockedStudents.has(student.id)}
+                            disabled={lockedStudents.has(student.id) && !isEditMode}
                           >
                             📝
                           </Button>
@@ -748,7 +855,7 @@ export default function AttendanceMarking() {
                           value={notes[student.id] || ''}
                           onChange={(e) => handleNotesChange(student.id, e.target.value)}
                           className="text-sm"
-                          disabled={lockedStudents.has(student.id)}
+                          disabled={lockedStudents.has(student.id) && !isEditMode}
                         />
                       </TableCell>
                     </TableRow>
@@ -759,7 +866,7 @@ export default function AttendanceMarking() {
 
             <div className="mt-4 flex flex-col sm:flex-row gap-2">
               <Button onClick={handleSaveAttendance} size="sm" className="w-full sm:w-auto">
-                💾 Save Attendance
+                💾 {isEditMode ? 'Update Attendance' : `Save Attendance${Object.keys(studentStatus).length > 0 ? ` (${Object.keys(studentStatus).length})` : ''}`}
               </Button>
               <Button onClick={handleExportToExcel} variant="outline" size="sm" className="flex items-center justify-center gap-2 w-full sm:w-auto">
                 <Download className="w-4 h-4" />

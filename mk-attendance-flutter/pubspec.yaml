@@ -1,0 +1,51 @@
+name: mk_attendance
+description: MK Attendance Management System - Mobile App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP client for API calls
+  http: ^1.1.0
+  
+  # State management
+  provider: ^6.1.1
+  
+  # Local storage
+  shared_preferences: ^2.2.2
+  
+  # JSON handling (using built-in dart:convert instead)
+  
+  # Date handling
+  intl: ^0.19.0
+  
+  # File handling for CSV export
+  path_provider: ^2.1.1
+  
+  # UI components
+  cupertino_icons: ^1.0.6
+  
+  # Loading indicators (using built-in CircularProgressIndicator instead)
+  
+  # URL launcher for web version
+  url_launcher: ^6.2.1
+  
+  # File sharing for backup
+  share_plus: ^7.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/images/
+    - assets/icons/

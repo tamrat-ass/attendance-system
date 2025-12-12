@@ -1,0 +1,26 @@
+📧 EMAIL THE APK TO YOURSELF - EASIEST METHOD:
+
+1. Open your email (Gmail, Outlook, Yahoo, etc.)
+
+2. Compose a new email to yourself
+
+3. Click "Attach file" or the paperclip icon
+
+4. Navigate to your Desktop
+
+5. Select "MK-Attendance-App.apk" (49.0 MB file)
+
+6. Send the email
+
+7. On your phone:
+   - Open your email app
+   - Find the email you sent
+   - Download the APK attachment
+   - Tap the downloaded APK to install
+
+📍 APK File Location: C:\Users\HP\Desktop\MK-Attendance-App.apk
+
+📱 After downloading on phone:
+   - Go to Settings → Security → Install unknown apps
+   - Allow your email app or file manager to install apps
+   - Tap the APK file to install MK Attendance app

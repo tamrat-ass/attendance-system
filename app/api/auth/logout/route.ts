@@ -1,23 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const { user_id, username } = await request.json();
-
-    if (user_id && username) {
-      // Log the logout action
-      const ip_address = request.headers.get('x-forwarded-for') || 
-                         request.headers.get('x-real-ip') || 
-                         'unknown';
-      
-      await db.query(
-        `INSERT INTO user_logs (user_id, username, action, details, ip_address) 
-         VALUES (?, ?, ?, ?, ?)`,
-        [user_id, username, 'LOGOUT', 'User logged out', ip_address]
-      );
-    }
-
+    // In a real app, you would clear session/token here
+    // For now, we'll just return success
     return NextResponse.json({
       success: true,
       message: 'Logout successful'
@@ -25,7 +11,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Logout error:', error);
     return NextResponse.json(
-      { success: false, message: 'Logout failed' },
+      { success: false, message: error.message || 'Logout failed' },
       { status: 500 }
     );
   }

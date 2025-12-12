@@ -99,11 +99,26 @@ export async function POST(req: Request) {
       ON CONFLICT (student_id, date)
       DO UPDATE SET
         status = EXCLUDED.status,
-        notes = EXCLUDED.notes,
-        updated_at = CURRENT_TIMESTAMP
+        notes = EXCLUDED.notes
     `;
 
     await db.query(sql, values);
+
+    // Trigger sync notification for real-time updates
+    try {
+      await fetch(`${process.env.VERCEL_URL || 'http://localhost:3000'}/api/attendance/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'attendance_saved',
+          count: placeholders.length,
+          date: records[0]?.date
+        })
+      });
+    } catch (syncError) {
+      console.log('Sync notification failed:', syncError);
+      // Don't fail the main request if sync notification fails
+    }
 
     return NextResponse.json({
       message: `Attendance saved successfully for ${placeholders.length} students`,

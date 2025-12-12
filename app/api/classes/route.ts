@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET all classes
+// GET all classes from students table
 export async function GET() {
   try {
+    // Get unique classes from students table
     const [rows]: any = await db.query(
-      'SELECT id, class_name, description, created_at FROM classes ORDER BY class_name ASC'
+      'SELECT DISTINCT class as class_name FROM students WHERE class IS NOT NULL AND class != "" ORDER BY class ASC'
     );
 
     return NextResponse.json({
