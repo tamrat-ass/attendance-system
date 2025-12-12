@@ -22,10 +22,17 @@ class AttendanceProvider with ChangeNotifier {
 
     try {
       final apiService = ApiService();
+      print('Provider: Loading attendance for date=$date, class=$className');
+      
       _attendanceRecords = await apiService.getAttendance(
         date: date,
         className: className,
       );
+      
+      print('Provider: Received ${_attendanceRecords.length} attendance records');
+      for (final record in _attendanceRecords) {
+        print('  - Student ${record.studentId}: ${record.status}');
+      }
       
       // Update local status map
       _studentStatus.clear();
@@ -34,6 +41,8 @@ class AttendanceProvider with ChangeNotifier {
       for (final record in _attendanceRecords) {
         _studentStatus[record.studentId] = record.status;
       }
+      
+      print('Provider: Updated student status map: $_studentStatus');
       
       _isLoading = false;
       notifyListeners();

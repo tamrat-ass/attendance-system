@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../utils/app_colors.dart';
 import '../utils/ethiopian_date.dart';
-import 'attendance_screen.dart';
+import 'simple_attendance_screen.dart';
 import 'students_screen.dart';
 import 'user_management_screen.dart';
 import 'settings_screen.dart';
@@ -29,7 +29,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<Widget> _getScreensForUser(String? userRole) {
     final screens = <Widget>[
       const _HomeScreen(),
-      const AttendanceScreen(),
+      const SimpleAttendanceScreen(),
       const StudentsScreen(),
     ];
 

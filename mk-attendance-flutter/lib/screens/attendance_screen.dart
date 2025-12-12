@@ -56,20 +56,33 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Future<void> _loadExistingAttendance() async {
     if (_selectedClass == null) return;
     
+    print('=== LOADING EXISTING ATTENDANCE ===');
+    print('Date: $_selectedDate');
+    print('Class: $_selectedClass');
+    
     final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
     await attendanceProvider.loadAttendance(
       date: _selectedDate,
       className: _selectedClass,
     );
     
+    print('Loaded attendance records: ${attendanceProvider.attendanceRecords.length}');
+    print('Student status from provider: ${attendanceProvider.studentStatus}');
+    print('Student notes from provider: ${attendanceProvider.studentNotes}');
+    
     // Update local state with existing attendance
     setState(() {
       _savedStudentStatus = Map.from(attendanceProvider.studentStatus);
       _studentNotes = Map.from(attendanceProvider.studentNotes);
       _lockedStudents = Set.from(attendanceProvider.studentStatus.keys);
-      // Don't load saved status into current status - keep them separate
-      _studentStatus.clear(); // Clear current status so save button shows (0)
+      // Load saved status into current status to show existing attendance
+      _studentStatus = Map.from(attendanceProvider.studentStatus);
     });
+    
+    print('Updated local state:');
+    print('- Saved status: $_savedStudentStatus');
+    print('- Current status: $_studentStatus');
+    print('- Locked students: $_lockedStudents');
   }
 
   Future<void> _selectDate() async {
@@ -258,15 +271,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     if (isConnected) {
       _showMessage('✅ API connection successful!', Colors.green);
       
-      // Also test save format
-      _showMessage('Testing save format...', Colors.orange);
-      final saveTest = await ApiService.testSaveWithWebFormat();
-      
-      if (saveTest) {
-        _showMessage('✅ Save format test successful!', Colors.green);
-      } else {
-        _showMessage('❌ Save format test failed. Check console.', Colors.red);
-      }
+      // Save format is already tested in the main save method
+      _showMessage('✅ API connection successful!', Colors.green);
     } else {
       _showMessage('❌ API connection failed. Check console for details.', Colors.red);
     }

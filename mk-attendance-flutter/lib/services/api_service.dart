@@ -345,6 +345,7 @@ class ApiService {
       print('Full payload: $jsonPayload');
       print('Headers: ${_getHeaders()}');
       print('URL: $baseUrl/attendance');
+      print('Base URL: $baseUrl');
       
       final response = await http.post(
         Uri.parse('$baseUrl/attendance'),
