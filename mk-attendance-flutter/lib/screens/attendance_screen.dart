@@ -25,55 +25,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Map<int, String> _savedStudentStatus = {}; // Track saved attendance separately
   bool _isEditMode = false;
   
-  // Initialize with current Ethiopian date converted to Gregorian format
-  String _selectedDate = _getCurrentEthiopianDateAsGregorian();
-  
-  // Helper method to get current Ethiopian date as Gregorian string for consistency with web app
-  static String _getCurrentEthiopianDateAsGregorian() {
-    final now = DateTime.now();
-    final ethiopianDate = EthiopianDateUtils.gregorianToEthiopian(now);
-    final gregorianString = _ethiopianToGregorianString(ethiopianDate);
-    
-    print('=== DATE SYNC DEBUG ===');
-    print('Current Gregorian: ${now.toIso8601String().split('T')[0]}');
-    print('Ethiopian Date: ${ethiopianDate['year']}-${ethiopianDate['month']}-${ethiopianDate['day']}');
-    print('Converted to Gregorian: $gregorianString');
-    print('=== END DATE SYNC DEBUG ===');
-    
-    // Convert Ethiopian date back to a consistent Gregorian format
-    // This ensures both web and mobile use the same date representation
-    return gregorianString;
-  }
-  
-  // Convert Ethiopian date to Gregorian string format (YYYY-MM-DD)
-  static String _ethiopianToGregorianString(Map<String, int> ethiopianDate) {
-    // Simple conversion for consistency - this should match the web app logic
-    final ethYear = ethiopianDate['year']!;
-    final ethMonth = ethiopianDate['month']!;
-    final ethDay = ethiopianDate['day']!;
-    
-    // Convert Ethiopian to approximate Gregorian (matching web app logic)
-    final gregYear = ethYear + 7; // Ethiopian year + 7 = approximate Gregorian year
-    int gregMonth = ethMonth + 8; // Approximate month conversion
-    int gregDay = ethDay;
-    
-    // Handle month overflow
-    if (gregMonth > 12) {
-      gregMonth = gregMonth - 12;
-    }
-    
-    // Ensure valid ranges
-    if (gregMonth <= 0) gregMonth = 1;
-    if (gregMonth > 12) gregMonth = 12;
-    if (gregDay <= 0) gregDay = 1;
-    if (gregDay > 28) gregDay = 28; // Safe day for all months
-    
-    final year = gregYear.toString().padLeft(4, '0');
-    final month = gregMonth.toString().padLeft(2, '0');
-    final day = gregDay.toString().padLeft(2, '0');
-    
-    return '$year-$month-$day';
-  }
+  // Initialize with current date in Gregorian format
+  String _selectedDate = DateTime.now().toIso8601String().split('T')[0];
 
   @override
   void initState() {
@@ -145,18 +98,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
     
     if (picked != null) {
-      // Convert the picked Gregorian date to Ethiopian and back to ensure consistency
-      final ethiopianDate = EthiopianDateUtils.gregorianToEthiopian(picked);
-      final consistentDate = _ethiopianToGregorianString(ethiopianDate);
-      
-      print('=== DATE PICKER SYNC DEBUG ===');
-      print('Picked Gregorian: ${picked.toIso8601String().split('T')[0]}');
-      print('Converted Ethiopian: ${ethiopianDate['year']}-${ethiopianDate['month']}-${ethiopianDate['day']}');
-      print('Final Consistent Date: $consistentDate');
-      print('=== END DATE PICKER SYNC DEBUG ===');
-      
       setState(() {
-        _selectedDate = consistentDate;
+        _selectedDate = picked.toIso8601String().split('T')[0];
         _studentStatus.clear();
         _studentNotes.clear();
         _lockedStudents.clear();
