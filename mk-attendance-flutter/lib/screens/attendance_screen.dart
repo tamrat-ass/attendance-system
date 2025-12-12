@@ -79,6 +79,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       _studentStatus = Map.from(attendanceProvider.studentStatus);
     });
     
+    print('✅ Loaded existing attendance for ${_lockedStudents.length} students');
+    
     print('Updated local state:');
     print('- Saved status: $_savedStudentStatus');
     print('- Current status: $_studentStatus');

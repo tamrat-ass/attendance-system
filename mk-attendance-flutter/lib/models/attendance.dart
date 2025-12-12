@@ -6,6 +6,7 @@ class Attendance {
   final String status;
   final int classId;
   final String className;
+  final String? notes;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -17,6 +18,7 @@ class Attendance {
     required this.status,
     required this.classId,
     required this.className,
+    this.notes,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -30,6 +32,7 @@ class Attendance {
       status: json['status'] ?? 'absent',
       classId: json['class_id'] ?? json['classId'] ?? 0,
       className: json['class_name'] ?? json['className'] ?? '',
+      notes: json['notes'],
       createdAt: DateTime.parse(json['created_at'] ?? json['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(json['updated_at'] ?? json['updatedAt'] ?? DateTime.now().toIso8601String()),
     );
@@ -44,6 +47,7 @@ class Attendance {
       'status': status,
       'class_id': classId,
       'class_name': className,
+      'notes': notes,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };

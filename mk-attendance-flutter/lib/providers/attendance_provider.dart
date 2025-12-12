@@ -40,6 +40,9 @@ class AttendanceProvider with ChangeNotifier {
       
       for (final record in _attendanceRecords) {
         _studentStatus[record.studentId] = record.status;
+        if (record.notes != null && record.notes!.isNotEmpty) {
+          _studentNotes[record.studentId] = record.notes!;
+        }
       }
       
       print('Provider: Updated student status map: $_studentStatus');
