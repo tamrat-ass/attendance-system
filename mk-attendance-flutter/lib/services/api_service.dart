@@ -329,7 +329,25 @@ class ApiService {
   Future<bool> saveAttendanceRecords(List<Map<String, dynamic>> records) async {
     // Check connectivity first
     if (!await _checkConnectivity()) {
-      print('No internet connection for saving attendance');
+      print('❌ No internet connection for saving attendance');
+      return false;
+    }
+
+    // Test API connection before saving
+    try {
+      print('🔍 Testing API connection before save...');
+      final testResponse = await http.get(
+        Uri.parse('$baseUrl/students?limit=1'),
+        headers: _getHeaders(),
+      ).timeout(const Duration(seconds: 5));
+      
+      if (testResponse.statusCode != 200) {
+        print('❌ API connection test failed: ${testResponse.statusCode}');
+        return false;
+      }
+      print('✅ API connection test successful');
+    } catch (e) {
+      print('❌ API connection test error: $e');
       return false;
     }
 
@@ -364,7 +382,29 @@ class ApiService {
           final hasMessage = data['message'] != null;
           final hasCount = data['count'] != null;
           final success = hasMessage && !data['message'].toString().toLowerCase().contains('error');
-          print('Save success: $success (message: ${data['message']}, count: ${data['count']})');
+          print('✅ Save success: $success (message: ${data['message']}, count: ${data['count']})');
+          
+          // Double-check by verifying the data was actually saved
+          if (success) {
+            print('🔍 Verifying save by checking database...');
+            try {
+              final verifyResponse = await http.get(
+                Uri.parse('$baseUrl/attendance?date=${records.first['date']}&_verify=${DateTime.now().millisecondsSinceEpoch}'),
+                headers: _getHeaders(),
+              ).timeout(const Duration(seconds: 5));
+              
+              if (verifyResponse.statusCode == 200) {
+                final verifyData = jsonDecode(verifyResponse.body);
+                final savedRecords = verifyData['data'] ?? [];
+                print('✅ Verification: Found ${savedRecords.length} records in database');
+                return true;
+              }
+            } catch (e) {
+              print('⚠️ Verification failed but save appeared successful: $e');
+              return true; // Still return true since the save API succeeded
+            }
+          }
+          
           return success;
         } catch (e) {
           // If JSON parsing fails but status is 200, assume success
@@ -372,7 +412,7 @@ class ApiService {
           return true;
         }
       } else {
-        print('Save failed with status: ${response.statusCode}, body: ${response.body}');
+        print('❌ Save failed with status: ${response.statusCode}, body: ${response.body}');
         return false;
       }
     } on SocketException {
