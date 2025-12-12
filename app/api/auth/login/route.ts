@@ -29,8 +29,18 @@ export async function POST(request: NextRequest) {
 
     const user = users[0];
 
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    // Verify password - handle both hashed and plain text
+    let isPasswordValid = false;
+    
+    // Check if password is bcrypt hashed (starts with $2a$, $2b$, etc.)
+    if (user.password_hash && user.password_hash.match(/^\$2[aby]\$/)) {
+      // Hashed password - use bcrypt
+      isPasswordValid = await bcrypt.compare(password, user.password_hash);
+    } else {
+      // Plain text password - direct comparison
+      isPasswordValid = password === user.password_hash;
+    }
+    
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, message: 'Invalid username or password' },
