@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
     // Find user by username
     const [users]: any = await db.query(
-      'SELECT * FROM users WHERE username = ? AND status = "active"',
+      'SELECT * FROM users WHERE username = ?',
       [username]
     );
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const user = users[0];
 
     // Verify password
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, message: 'Invalid username or password' },

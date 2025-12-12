@@ -78,11 +78,15 @@ class AttendanceProvider with ChangeNotifier {
     return _studentNotes[studentId] ?? '';
   }
 
-  Future<bool> saveAttendance(String date, int classId) async {
+  Future<Map<String, dynamic>> saveAttendance(String date, int classId) async {
     if (_studentStatus.isEmpty) {
       _errorMessage = 'No attendance marked';
       notifyListeners();
-      return false;
+      return {
+        'success': false,
+        'message': 'No attendance marked',
+        'error': 'NO_ATTENDANCE_MARKED'
+      };
     }
 
     // Don't set loading state - keep UI unchanged during save
@@ -109,21 +113,38 @@ class AttendanceProvider with ChangeNotifier {
       
       print('Saving ${records.length} attendance records: $records');
       
-      // Use the correct API method that matches the web version
-      final success = await apiService.saveAttendanceRecords(records);
+      // Use the enhanced API method that returns detailed response
+      final result = await apiService.saveAttendanceRecords(records);
       
-      if (success) {
+      if (result['success'] == true) {
         _errorMessage = null;
         print('✅ Attendance saved successfully - Web app will auto-sync in 5 seconds');
+        print('📊 Inserted: ${result['insertedCount'] ?? 0}, Updated: ${result['updatedCount'] ?? 0}');
       } else {
-        _errorMessage = 'Failed to save attendance to server';
+        _errorMessage = result['message'] ?? 'Failed to save attendance to server';
+        
+        // Handle specific error types
+        if (result['error'] == 'DUPLICATE_ATTENDANCE') {
+          print('❌ Duplicate attendance detected: ${result['message']}');
+          if (result['duplicates'] != null) {
+            print('📋 Duplicates: ${result['duplicates']}');
+          }
+        } else if (result['error'] == 'NO_CONNECTION') {
+          print('❌ No internet connection');
+        } else {
+          print('❌ Save failed: ${result['message']}');
+        }
       }
 
       // Don't notify listeners to avoid UI changes during save
-      return success;
+      return result;
     } catch (e) {
       _errorMessage = 'Network error: ${e.toString()}';
-      return false;
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}',
+        'error': 'NETWORK_ERROR'
+      };
     }
   }
 

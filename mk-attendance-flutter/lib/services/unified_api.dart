@@ -92,7 +92,7 @@ class UnifiedAttendanceAPI {
     }
   }
 
-  // POST attendance records - UNIFIED
+  // POST attendance records - UNIFIED with duplicate validation
   static Future<Map<String, dynamic>> saveAttendance(List<Map<String, dynamic>> records) async {
     if (records.isEmpty) {
       print('⚠️ No records to save');
@@ -100,6 +100,21 @@ class UnifiedAttendanceAPI {
         'success': false,
         'message': 'No records provided'
       };
+    }
+
+    // Check for duplicates within the request
+    final seenStudentDates = <String>{};
+    for (final record in records) {
+      final studentDateKey = '${record['student_id']}-${record['date']}';
+      if (seenStudentDates.contains(studentDateKey)) {
+        print('❌ Duplicate attendance detected in request');
+        return {
+          'success': false,
+          'message': 'Duplicate attendance detected for student ${record['student_id']} on ${record['date']}. Only one attendance per student per day is allowed.',
+          'error': 'DUPLICATE_ATTENDANCE'
+        };
+      }
+      seenStudentDates.add(studentDateKey);
     }
 
     try {

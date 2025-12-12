@@ -326,11 +326,37 @@ class ApiService {
     }
   }
 
-  Future<bool> saveAttendanceRecords(List<Map<String, dynamic>> records) async {
+  Future<Map<String, dynamic>> saveAttendanceRecords(List<Map<String, dynamic>> records) async {
     // Check connectivity first
     if (!await _checkConnectivity()) {
       print('❌ No internet connection for saving attendance');
-      return false;
+      return {
+        'success': false,
+        'message': 'No internet connection. Please check your network and try again.',
+        'error': 'NO_CONNECTION'
+      };
+    }
+
+    // Validate records for duplicates before sending
+    final Map<String, int> studentDateCount = {};
+    final List<String> duplicates = [];
+    
+    for (var record in records) {
+      final key = '${record['student_id']}-${record['date']}';
+      studentDateCount[key] = (studentDateCount[key] ?? 0) + 1;
+      
+      if (studentDateCount[key]! > 1) {
+        duplicates.add('Student ${record['student_id']} on ${record['date']}');
+      }
+    }
+    
+    if (duplicates.isNotEmpty) {
+      return {
+        'success': false,
+        'message': 'Duplicate attendance detected: ${duplicates.join(', ')}. Each student can only have one attendance record per day.',
+        'error': 'DUPLICATE_ATTENDANCE',
+        'duplicates': duplicates
+      };
     }
 
     // Test API connection before saving
@@ -343,12 +369,20 @@ class ApiService {
       
       if (testResponse.statusCode != 200) {
         print('❌ API connection test failed: ${testResponse.statusCode}');
-        return false;
+        return {
+          'success': false,
+          'message': 'Unable to connect to server. Please try again.',
+          'error': 'CONNECTION_FAILED'
+        };
       }
       print('✅ API connection test successful');
     } catch (e) {
       print('❌ API connection test error: $e');
-      return false;
+      return {
+        'success': false,
+        'message': 'Connection test failed. Please check your internet connection.',
+        'error': 'CONNECTION_TEST_FAILED'
+      };
     }
 
     try {
@@ -378,14 +412,13 @@ class ApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
           final data = jsonDecode(response.body);
-          // API returns { message: "...", count: ... } on success, not { success: true }
-          final hasMessage = data['message'] != null;
-          final hasCount = data['count'] != null;
-          final success = hasMessage && !data['message'].toString().toLowerCase().contains('error');
-          print('✅ Save success: $success (message: ${data['message']}, count: ${data['count']})');
+          final success = data['success'] == true || 
+                         (data['message'] != null && !data['message'].toString().toLowerCase().contains('error'));
           
-          // Double-check by verifying the data was actually saved
+          print('✅ Save success: $success (message: ${data['message']})');
+          
           if (success) {
+            // Double-check by verifying the data was actually saved
             print('🔍 Verifying save by checking database...');
             try {
               final verifyResponse = await http.get(
@@ -397,30 +430,88 @@ class ApiService {
                 final verifyData = jsonDecode(verifyResponse.body);
                 final savedRecords = verifyData['data'] ?? [];
                 print('✅ Verification: Found ${savedRecords.length} records in database');
-                return true;
               }
             } catch (e) {
               print('⚠️ Verification failed but save appeared successful: $e');
-              return true; // Still return true since the save API succeeded
             }
+            
+            return {
+              'success': true,
+              'message': data['message'] ?? 'Attendance saved successfully',
+              'insertedCount': data['insertedCount'] ?? 0,
+              'updatedCount': data['updatedCount'] ?? 0
+            };
+          } else {
+            return {
+              'success': false,
+              'message': data['message'] ?? 'Failed to save attendance',
+              'error': data['error'] ?? 'SAVE_FAILED'
+            };
           }
-          
-          return success;
         } catch (e) {
           // If JSON parsing fails but status is 200, assume success
           print('JSON parse error but status 200, assuming success: $e');
-          return true;
+          return {
+            'success': true,
+            'message': 'Attendance saved successfully'
+          };
+        }
+      } else if (response.statusCode == 409) {
+        // Handle duplicate attendance conflict
+        try {
+          final data = jsonDecode(response.body);
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Duplicate attendance detected',
+            'error': data['error'] ?? 'DUPLICATE_ATTENDANCE',
+            'hint': data['hint']
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Duplicate attendance detected. Each student can only have one attendance record per day.',
+            'error': 'DUPLICATE_ATTENDANCE'
+          };
+        }
+      } else if (response.statusCode == 400) {
+        // Handle validation errors
+        try {
+          final data = jsonDecode(response.body);
+          return {
+            'success': false,
+            'message': data['message'] ?? 'Invalid attendance data',
+            'error': data['error'] ?? 'VALIDATION_ERROR',
+            'duplicates': data['duplicates']
+          };
+        } catch (e) {
+          return {
+            'success': false,
+            'message': 'Invalid attendance data provided',
+            'error': 'VALIDATION_ERROR'
+          };
         }
       } else {
         print('❌ Save failed with status: ${response.statusCode}, body: ${response.body}');
-        return false;
+        return {
+          'success': false,
+          'message': 'Server error (${response.statusCode}). Please try again.',
+          'error': 'SERVER_ERROR'
+        };
       }
     } on SocketException {
       print('Network error: No internet connection');
-      return false;
+      return {
+        'success': false,
+        'message': 'No internet connection. Please check your network.',
+        'error': 'NO_CONNECTION'
+      };
     } catch (e) {
       print('Save error: $e');
-      return false;
+      return {
+        'success': false,
+        'message': 'Network error: ${e.toString()}',
+        'error': 'NETWORK_ERROR'
+      };
     }
   }
 

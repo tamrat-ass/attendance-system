@@ -17,7 +17,6 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   String? _selectedClass;
-  String _selectedDate = DateTime.now().toIso8601String().split('T')[0];
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
   Map<int, String> _studentStatus = {};
@@ -25,6 +24,56 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Set<int> _lockedStudents = {};
   Map<int, String> _savedStudentStatus = {}; // Track saved attendance separately
   bool _isEditMode = false;
+  
+  // Initialize with current Ethiopian date converted to Gregorian format
+  String _selectedDate = _getCurrentEthiopianDateAsGregorian();
+  
+  // Helper method to get current Ethiopian date as Gregorian string for consistency with web app
+  static String _getCurrentEthiopianDateAsGregorian() {
+    final now = DateTime.now();
+    final ethiopianDate = EthiopianDateUtils.gregorianToEthiopian(now);
+    final gregorianString = _ethiopianToGregorianString(ethiopianDate);
+    
+    print('=== DATE SYNC DEBUG ===');
+    print('Current Gregorian: ${now.toIso8601String().split('T')[0]}');
+    print('Ethiopian Date: ${ethiopianDate['year']}-${ethiopianDate['month']}-${ethiopianDate['day']}');
+    print('Converted to Gregorian: $gregorianString');
+    print('=== END DATE SYNC DEBUG ===');
+    
+    // Convert Ethiopian date back to a consistent Gregorian format
+    // This ensures both web and mobile use the same date representation
+    return gregorianString;
+  }
+  
+  // Convert Ethiopian date to Gregorian string format (YYYY-MM-DD)
+  static String _ethiopianToGregorianString(Map<String, int> ethiopianDate) {
+    // Simple conversion for consistency - this should match the web app logic
+    final ethYear = ethiopianDate['year']!;
+    final ethMonth = ethiopianDate['month']!;
+    final ethDay = ethiopianDate['day']!;
+    
+    // Convert Ethiopian to approximate Gregorian (matching web app logic)
+    final gregYear = ethYear + 7; // Ethiopian year + 7 = approximate Gregorian year
+    int gregMonth = ethMonth + 8; // Approximate month conversion
+    int gregDay = ethDay;
+    
+    // Handle month overflow
+    if (gregMonth > 12) {
+      gregMonth = gregMonth - 12;
+    }
+    
+    // Ensure valid ranges
+    if (gregMonth <= 0) gregMonth = 1;
+    if (gregMonth > 12) gregMonth = 12;
+    if (gregDay <= 0) gregDay = 1;
+    if (gregDay > 28) gregDay = 28; // Safe day for all months
+    
+    final year = gregYear.toString().padLeft(4, '0');
+    final month = gregMonth.toString().padLeft(2, '0');
+    final day = gregDay.toString().padLeft(2, '0');
+    
+    return '$year-$month-$day';
+  }
 
   @override
   void initState() {
@@ -96,8 +145,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
     
     if (picked != null) {
+      // Convert the picked Gregorian date to Ethiopian and back to ensure consistency
+      final ethiopianDate = EthiopianDateUtils.gregorianToEthiopian(picked);
+      final consistentDate = _ethiopianToGregorianString(ethiopianDate);
+      
+      print('=== DATE PICKER SYNC DEBUG ===');
+      print('Picked Gregorian: ${picked.toIso8601String().split('T')[0]}');
+      print('Converted Ethiopian: ${ethiopianDate['year']}-${ethiopianDate['month']}-${ethiopianDate['day']}');
+      print('Final Consistent Date: $consistentDate');
+      print('=== END DATE PICKER SYNC DEBUG ===');
+      
       setState(() {
-        _selectedDate = picked.toIso8601String().split('T')[0];
+        _selectedDate = consistentDate;
         _studentStatus.clear();
         _studentNotes.clear();
         _lockedStudents.clear();
@@ -107,13 +166,107 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   void _handleStatusChange(int studentId, String status) {
-    // Allow changes if in edit mode, even for locked students
-    if (_lockedStudents.contains(studentId) && !_isEditMode) return;
+    // Check if student is locked and not in edit mode
+    if (_lockedStudents.contains(studentId) && !_isEditMode) {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      final student = studentProvider.students.firstWhere(
+        (s) => s.id == studentId,
+        orElse: () => Student(id: studentId, fullName: 'Unknown Student', phone: '', className: ''),
+      );
+      
+      _showMessage(
+        '🔒 ${student.fullName} already has attendance saved. Use Edit Mode to make changes.',
+        Colors.orange,
+      );
+      return;
+    }
+    
+    // Check for duplicate attempt (trying to mark attendance when already marked)
+    if (_savedStudentStatus.containsKey(studentId) && !_isEditMode) {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      final student = studentProvider.students.firstWhere(
+        (s) => s.id == studentId,
+        orElse: () => Student(id: studentId, fullName: 'Unknown Student', phone: '', className: ''),
+      );
+      
+      final existingStatus = _savedStudentStatus[studentId];
+      
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.info, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Attendance Already Exists'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${student.fullName} already has attendance marked as "$existingStatus" for $_selectedDate.',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Each student can only have one attendance record per day.',
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Would you like to:',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _toggleEditMode(); // Enable edit mode
+                  // Then apply the status change
+                  setState(() {
+                    _studentStatus[studentId] = status;
+                  });
+                  _showMessage(
+                    '✏️ Edit mode enabled. You can now modify ${student.fullName}\'s attendance.',
+                    Colors.orange,
+                  );
+                },
+                child: const Text('Edit Existing'),
+              ),
+            ],
+          );
+        },
+      );
+      return;
+    }
     
     print('Marking student $studentId as $status (Edit mode: $_isEditMode)');
     setState(() {
       _studentStatus[studentId] = status;
     });
+    
+    // Show confirmation message for new attendance
+    if (!_isEditMode) {
+      final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+      final student = studentProvider.students.firstWhere(
+        (s) => s.id == studentId,
+        orElse: () => Student(id: studentId, fullName: 'Unknown Student', phone: '', className: ''),
+      );
+      
+      _showMessage(
+        '✅ ${student.fullName} marked as $status',
+        Colors.green,
+      );
+    }
+    
     print('Current student status: $_studentStatus');
   }
 
@@ -124,6 +277,186 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     setState(() {
       _studentNotes[studentId] = note;
     });
+  }
+
+  // Enhanced duplicate validation before saving
+  bool _validateAttendanceData() {
+    // Check for duplicate entries within current selection
+    final Map<String, List<int>> studentDateMap = {};
+    final List<String> duplicates = [];
+    
+    for (final entry in _studentStatus.entries) {
+      final studentId = entry.key;
+      final key = '$studentId-$_selectedDate';
+      
+      if (!studentDateMap.containsKey(key)) {
+        studentDateMap[key] = [];
+      }
+      studentDateMap[key]!.add(studentId);
+      
+      if (studentDateMap[key]!.length > 1) {
+        final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+        final student = studentProvider.students.firstWhere(
+          (s) => s.id == studentId,
+          orElse: () => Student(id: studentId, fullName: 'Unknown Student', phone: '', className: ''),
+        );
+        duplicates.add('${student.fullName} (ID: $studentId)');
+      }
+    }
+    
+    if (duplicates.isNotEmpty) {
+      _showDuplicateValidationDialog(duplicates);
+      return false;
+    }
+    
+    return true;
+  }
+
+  void _showDuplicateValidationDialog(List<String> duplicates) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning, color: Colors.red),
+              SizedBox(width: 8),
+              Text('Duplicate Attendance Detected'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Multiple attendance entries found for the following students:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              ...duplicates.map((duplicate) => Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 4),
+                child: Text('• $duplicate'),
+              )),
+              const SizedBox(height: 12),
+              const Text(
+                'Each student can only have one attendance record per day. Please review your selections.',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDuplicateErrorDialog(Map<String, dynamic> result) {
+    final errorType = result['error'];
+    final message = result['message'] ?? 'Duplicate attendance detected';
+    final duplicates = result['duplicates'] as List?;
+    final hint = result['hint'];
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.error, color: Colors.red),
+              SizedBox(width: 8),
+              Expanded(child: Text('Duplicate Attendance Error')),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                if (duplicates != null && duplicates.isNotEmpty) ...[
+                  const Text(
+                    'Duplicates found:',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  ...duplicates.map((duplicate) => Padding(
+                    padding: const EdgeInsets.only(left: 16, bottom: 2),
+                    child: Text('• $duplicate'),
+                  )),
+                  const SizedBox(height: 12),
+                ],
+                if (hint != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.lightbulb, color: Colors.blue, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            hint,
+                            style: const TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange.shade200),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info, color: Colors.orange, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Each student can only have one attendance record per day. To modify existing attendance, use Edit Mode.',
+                          style: TextStyle(color: Colors.orange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            if (errorType == 'DUPLICATE_ATTENDANCE_EXISTS')
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _toggleEditMode(); // Enable edit mode
+                },
+                child: const Text('Enable Edit Mode'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _saveAttendance() async {
@@ -145,6 +478,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       return;
     }
     
+    // Validate for duplicates before proceeding
+    if (!_validateAttendanceData()) {
+      return; // Validation failed, don't proceed with save
+    }
+    
     // Test connectivity first
     final isConnected = await ApiService.testAttendanceApi();
     if (!isConnected) {
@@ -164,18 +502,32 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     attendanceProvider.studentNotes.addAll(_studentNotes);
     
     print('Calling saveAttendance with date: $_selectedDate, isEdit: $_isEditMode');
-    final success = await attendanceProvider.saveAttendance(_selectedDate, 1);
-    print('Save result: $success');
+    final result = await attendanceProvider.saveAttendance(_selectedDate, 1);
+    print('Save result: $result');
     print('Provider error: ${attendanceProvider.errorMessage}');
     
-    if (success) {
+    if (result['success'] == true) {
       // Store the count before clearing
       final savedCount = _studentStatus.length;
       final savedStudentIds = _studentStatus.keys.toSet();
       
-      final message = _isEditMode 
-          ? '✅ Attendance updated successfully for $savedCount students!'
-          : '✅ Attendance saved successfully for $savedCount students!';
+      // Create detailed success message
+      String message;
+      final insertedCount = result['insertedCount'] ?? 0;
+      final updatedCount = result['updatedCount'] ?? 0;
+      
+      if (insertedCount > 0 && updatedCount > 0) {
+        message = '✅ Attendance saved: $insertedCount new, $updatedCount updated!';
+      } else if (insertedCount > 0) {
+        message = '✅ Attendance saved for $insertedCount students!';
+      } else if (updatedCount > 0) {
+        message = '✅ Attendance updated for $updatedCount students!';
+      } else {
+        message = _isEditMode 
+            ? '✅ Attendance updated successfully for $savedCount students!'
+            : '✅ Attendance saved successfully for $savedCount students!';
+      }
+      
       _showMessage(message, Colors.green);
       
       // Update saved status and lock the students
@@ -193,17 +545,27 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         _isEditMode = false; // Exit edit mode after successful save
       });
     } else {
-      print('Save error: ${attendanceProvider.errorMessage}');
-      String errorMsg = attendanceProvider.errorMessage ?? 'Unknown error';
+      print('Save error: ${result['message']}');
+      String errorMsg = result['message'] ?? 'Unknown error';
+      final errorType = result['error'];
       
-      // Provide more helpful error messages
-      if (errorMsg.contains('Network error') || errorMsg.contains('SocketException')) {
-        errorMsg = 'No internet connection. Please check your network and try again.';
+      // Handle specific error types with appropriate messages
+      if (errorType == 'DUPLICATE_ATTENDANCE' || errorType == 'DUPLICATE_ATTENDANCE_IN_REQUEST' || errorType == 'DUPLICATE_ATTENDANCE_EXISTS') {
+        _showDuplicateErrorDialog(result);
+        return; // Don't continue with generic error handling
+      } else if (errorType == 'NO_CONNECTION' || errorMsg.contains('Network error') || errorMsg.contains('SocketException')) {
+        errorMsg = '❌ No Internet Connection\n\nPlease check your network connection and try again.';
+      } else if (errorType == 'CONNECTION_FAILED' || errorType == 'CONNECTION_TEST_FAILED') {
+        errorMsg = '❌ Server Connection Failed\n\nUnable to connect to the attendance server. Please try again later.';
+      } else if (errorType == 'SERVER_ERROR') {
+        errorMsg = '❌ Server Error\n\nThe server encountered an error. Please try again or contact support.';
+      } else if (errorType == 'VALIDATION_ERROR') {
+        errorMsg = '❌ Validation Error\n\n${result['message']}\n\nPlease check your attendance data and try again.';
       } else if (errorMsg.contains('Failed to save attendance to server')) {
-        errorMsg = 'Server error. Please try again or contact support.';
+        errorMsg = '❌ Server Error\n\nFailed to save attendance. Please try again or contact support.';
       }
       
-      _showMessage('❌ Save failed: $errorMsg', Colors.red);
+      _showMessage(errorMsg, Colors.red);
     }
     print('=== END SAVE DEBUG ===');
   }
@@ -643,12 +1005,21 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         ? _studentStatus[student.id] 
                         : (isLocked ? _savedStudentStatus[student.id] : _studentStatus[student.id]);
                     
+                    // Check if this student has duplicate attendance attempts
+                    final hasDuplicateAttempt = _studentStatus.containsKey(student.id) && 
+                                              _savedStudentStatus.containsKey(student.id) && 
+                                              !_isEditMode;
+                    
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: isLocked ? Border.all(color: Colors.green.shade300, width: 2) : null,
+                        border: hasDuplicateAttempt 
+                            ? Border.all(color: Colors.red.shade300, width: 2)
+                            : isLocked 
+                                ? Border.all(color: Colors.green.shade300, width: 2) 
+                                : null,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.05),
@@ -726,6 +1097,32 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                               color: AppColors.primary,
                                               fontWeight: FontWeight.w500,
                                             ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (hasDuplicateAttempt) ...[
+                                        const SizedBox(height: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.shade50,
+                                            borderRadius: BorderRadius.circular(10),
+                                            border: Border.all(color: Colors.red.shade200),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.warning, size: 12, color: Colors.red.shade700),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Already has attendance - Use Edit Mode',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.red.shade700,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],

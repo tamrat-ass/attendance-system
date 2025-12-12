@@ -61,6 +61,7 @@ class Attendance {
     String? status,
     int? classId,
     String? className,
+    String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -72,6 +73,7 @@ class Attendance {
       status: status ?? this.status,
       classId: classId ?? this.classId,
       className: className ?? this.className,
+      notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Get current user data by username
     const [users]: any = await db.query(
-      'SELECT id, password FROM users WHERE username = ? AND status = "active"',
+      'SELECT id, password_hash FROM users WHERE username = ?',
       [username]
     );
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const user = users[0];
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
     if (!isCurrentPasswordValid) {
       return NextResponse.json(
         { success: false, message: 'Current password is incorrect' },
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
     // Update password in database
     await db.query(
-      'UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
       [hashedNewPassword, user.id]
     );
 
