@@ -233,10 +233,22 @@ export default function AttendanceMarking() {
       searchStudent !== '' || s.class === selectedClass
     );
 
-  // Handle status change for a student
+  // Handle status change for a student with duplicate validation
   const handleStatusChange = (studentId: number, status: string) => {
     // Only allow changes if not locked or in edit mode
     if (!lockedStudents.has(studentId) || isEditMode) {
+      // Check if this student already has attendance for this date
+      const existingStatus = studentStatus[studentId];
+      
+      if (existingStatus && existingStatus !== status && !isEditMode) {
+        toast({
+          title: "⚠️ Attendance Already Marked",
+          description: `This student is already marked as "${existingStatus}". Use Edit Mode to change attendance status.`,
+          variant: "default"
+        });
+        return;
+      }
+      
       setStudentStatus({
         ...studentStatus,
         [studentId]: status as any
@@ -245,7 +257,23 @@ export default function AttendanceMarking() {
       // If this is a new selection (not in edit mode), lock the student immediately
       if (!isEditMode) {
         setLockedStudents(prev => new Set([...prev, studentId]));
+        
+        // Show confirmation for new attendance
+        const student = students.find(s => s.id === studentId);
+        toast({
+          title: "✅ Attendance Marked",
+          description: `${student?.full_name || `Student ${studentId}`} marked as ${status}`,
+          duration: 2000,
+        });
       }
+    } else {
+      // Show message when trying to change locked attendance
+      const student = students.find(s => s.id === studentId);
+      toast({
+        title: "🔒 Attendance Locked",
+        description: `${student?.full_name || `Student ${studentId}`} attendance is already saved. Use Edit Mode to make changes.`,
+        variant: "default"
+      });
     }
   };
 
@@ -273,7 +301,7 @@ export default function AttendanceMarking() {
     setIsEditMode(false);
   };
 
-  // Save attendance records
+  // Save attendance records with enhanced duplicate validation
   const handleSaveAttendance = async () => {
     const markedCount = Object.keys(studentStatus).length;
     
@@ -281,6 +309,30 @@ export default function AttendanceMarking() {
       toast({
         title: "No attendance marked",
         description: "Please mark attendance for at least one student",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Client-side duplicate validation
+    const studentDateMap = new Map<string, number>();
+    const duplicates: string[] = [];
+    
+    Object.keys(studentStatus).forEach(studentId => {
+      const key = `${studentId}-${selectedDate}`;
+      const count = (studentDateMap.get(key) || 0) + 1;
+      studentDateMap.set(key, count);
+      
+      if (count > 1) {
+        const student = students.find(s => s.id === parseInt(studentId));
+        duplicates.push(`${student?.full_name || `Student ${studentId}`} (ID: ${studentId})`);
+      }
+    });
+
+    if (duplicates.length > 0) {
+      toast({
+        title: "❌ Duplicate Attendance Detected",
+        description: `Multiple attendance entries found for: ${duplicates.join(', ')}. Each student can only have one attendance record per day.`,
         variant: "destructive"
       });
       return;
@@ -296,6 +348,8 @@ export default function AttendanceMarking() {
         notes: notes[parseInt(studentId)] || ''
       }));
 
+      console.log('💾 Web Save Request:', { recordCount: records.length, records });
+
       const response = await fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -303,11 +357,27 @@ export default function AttendanceMarking() {
       });
 
       const data = await response.json();
+      console.log('💾 Web Save Response:', { status: response.status, data });
 
       if (response.ok) {
+        // Enhanced success message with detailed information
+        let successMessage = '';
+        const insertedCount = data.insertedCount || 0;
+        const updatedCount = data.updatedCount || 0;
+        
+        if (insertedCount > 0 && updatedCount > 0) {
+          successMessage = `✅ Attendance saved: ${insertedCount} new records, ${updatedCount} updated records for ${selectedDate}`;
+        } else if (insertedCount > 0) {
+          successMessage = `✅ Attendance saved for ${insertedCount} students on ${selectedDate}`;
+        } else if (updatedCount > 0) {
+          successMessage = `✅ Attendance updated for ${updatedCount} students on ${selectedDate}`;
+        } else {
+          successMessage = `✅ Attendance saved for ${markedCount} students on ${selectedDate}`;
+        }
+
         toast({
           title: "Success",
-          description: `Attendance saved for ${markedCount} students on ${selectedDate}`,
+          description: successMessage,
         });
 
         // Lock all students and exit edit mode
@@ -323,17 +393,57 @@ export default function AttendanceMarking() {
         
         // Immediate refresh to show latest changes
         fetchExistingAttendance();
+      } else if (response.status === 409) {
+        // Handle duplicate attendance conflict
+        toast({
+          title: "❌ Duplicate Attendance Detected",
+          description: data.message || "Attendance already exists for one or more students on this date. Each student can only have one attendance record per day.",
+          variant: "destructive"
+        });
+        
+        if (data.hint) {
+          toast({
+            title: "💡 Tip",
+            description: data.hint,
+            variant: "default"
+          });
+        }
+      } else if (response.status === 400) {
+        // Handle validation errors
+        let errorMessage = data.message || "Invalid attendance data";
+        
+        if (data.error === 'DUPLICATE_ATTENDANCE_IN_REQUEST') {
+          errorMessage = `❌ Duplicate Attendance in Request\n\n${data.message}`;
+          
+          if (data.duplicates && Array.isArray(data.duplicates)) {
+            errorMessage += `\n\nDuplicates found:\n${data.duplicates.join('\n')}`;
+          }
+        }
+        
+        toast({
+          title: "Validation Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
       } else {
+        // Handle other errors
+        let errorMessage = data.message || "Failed to save attendance";
+        
+        if (data.error === 'DUPLICATE_ATTENDANCE_EXISTS') {
+          errorMessage = `❌ Duplicate Attendance\n\n${data.message}\n\n💡 Tip: Use Edit Mode to modify existing attendance records.`;
+        }
+        
         toast({
           title: "Error",
-          description: data.message || "Failed to save attendance",
+          description: errorMessage,
           variant: "destructive"
         });
       }
     } catch (error: any) {
+      console.error('💾 Web Save Error:', error);
       toast({
-        title: "Error",
-        description: "Failed to connect to server",
+        title: "Connection Error",
+        description: "Failed to connect to server. Please check your internet connection and try again.",
         variant: "destructive"
       });
     } finally {

@@ -142,19 +142,19 @@ export function stringToSimpleEthiopian(dateString: string): SimpleEthiopianDate
   return getCurrentSimpleEthiopianDate();
 }
 
-// Convert to Gregorian for database storage (simplified)
+// Convert to Gregorian for database storage (unified with mobile app)
 export function simpleEthiopianToGregorian(ethDate: SimpleEthiopianDate): string {
-  // Simple approximation for database storage
-  const gregYear = ethDate.year + 7;
-  let gregMonth = ethDate.month + 8; // Approximate
+  // Unified conversion logic that matches mobile app
+  const gregYear = ethDate.year + 7; // Ethiopian year + 7 = approximate Gregorian year
+  let gregMonth = ethDate.month + 8; // Approximate month conversion
   let gregDay = ethDate.day;
   
+  // Handle month overflow
   if (gregMonth > 12) {
     gregMonth = gregMonth - 12;
-    // Don't change year for simplicity
   }
   
-  // Ensure valid Gregorian date
+  // Ensure valid ranges (same as mobile app)
   if (gregMonth <= 0) gregMonth = 1;
   if (gregMonth > 12) gregMonth = 12;
   if (gregDay <= 0) gregDay = 1;
@@ -164,29 +164,41 @@ export function simpleEthiopianToGregorian(ethDate: SimpleEthiopianDate): string
   const month = gregMonth.toString().padStart(2, '0');
   const day = gregDay.toString().padStart(2, '0');
   
+  console.log('Ethiopian to Gregorian conversion:', { 
+    ethiopian: ethDate, 
+    gregorian: `${year}-${month}-${day}` 
+  });
+  
   return `${year}-${month}-${day}`;
 }
 
-// Convert Gregorian string back to Ethiopian (simplified)
+// Convert Gregorian string back to Ethiopian (unified with mobile app)
 export function gregorianToSimpleEthiopian(gregorianString: string): SimpleEthiopianDate {
   try {
     const [year, month, day] = gregorianString.split('-').map(Number);
     
-    // Simple reverse conversion
-    const ethYear = year - 7;
-    let ethMonth = month - 8;
+    // Unified reverse conversion (matches mobile app logic)
+    const ethYear = year - 7; // Reverse of +7
+    let ethMonth = month - 8; // Reverse of +8
     const ethDay = day;
     
+    // Handle month underflow
     if (ethMonth <= 0) {
       ethMonth = ethMonth + 12;
     }
     
-    // Ensure valid ranges
+    // Ensure valid ranges (same as mobile app)
     if (ethMonth <= 0) ethMonth = 1;
     if (ethMonth > 13) ethMonth = 13;
     
+    console.log('Gregorian to Ethiopian conversion:', { 
+      gregorian: gregorianString, 
+      ethiopian: { year: ethYear, month: ethMonth, day: ethDay } 
+    });
+    
     return { year: ethYear, month: ethMonth, day: ethDay };
-  } catch {
+  } catch (error) {
+    console.error('Date conversion error:', error);
     return getCurrentSimpleEthiopianDate();
   }
 }

@@ -112,6 +112,13 @@ export async function POST(req: Request) {
     const { records } = body; // Array of { student_id, date, status, notes }
 
     console.log('💾 POST Attendance Request:', { recordCount: records?.length, records });
+    
+    // Log date formats for sync debugging
+    if (records && records.length > 0) {
+      const uniqueDates = [...new Set(records.map(r => r.date))];
+      console.log('📅 Date formats received:', uniqueDates);
+      console.log('📅 Expected format: YYYY-MM-DD (e.g., 2024-12-03)');
+    }
 
     if (!records || !Array.isArray(records) || records.length === 0) {
       return NextResponse.json(
@@ -130,13 +137,26 @@ export async function POST(req: Request) {
       );
     }
 
-    // Validate and prepare records
+    // Validate and prepare records with enhanced duplicate checking
     const validRecords = [];
+    const seenStudentDates = new Set();
+    const duplicateErrors = [];
+    
     for (const record of records) {
       if (!record.student_id || !record.date || !record.status) {
         console.log('⚠️ Invalid record:', record);
         continue;
       }
+      
+      // Check for duplicates within the same request
+      const studentDateKey = `${record.student_id}-${record.date}`;
+      if (seenStudentDates.has(studentDateKey)) {
+        console.log('❌ Duplicate attendance in same request:', record);
+        duplicateErrors.push(`Student ID ${record.student_id} on ${record.date}`);
+        continue;
+      }
+      
+      seenStudentDates.add(studentDateKey);
       validRecords.push({
         student_id: parseInt(record.student_id),
         date: record.date,
@@ -145,11 +165,31 @@ export async function POST(req: Request) {
       });
     }
 
+    // Return error if duplicates found in request
+    if (duplicateErrors.length > 0) {
+      return NextResponse.json(
+        { 
+          success: false,
+          message: `Duplicate attendance detected in request: ${duplicateErrors.join(', ')}. Only one attendance record per student per day is allowed.`,
+          error: "DUPLICATE_ATTENDANCE_IN_REQUEST",
+          duplicates: duplicateErrors
+        },
+        { 
+          status: 400,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+          },
+        }
+      );
+    }
+
     if (validRecords.length === 0) {
       return NextResponse.json(
         { 
           success: false,
-          message: "No valid attendance records" 
+          message: "No valid attendance records after validation" 
         },
         { 
           status: 400,
@@ -164,36 +204,123 @@ export async function POST(req: Request) {
 
     console.log('✅ Valid records to save:', validRecords);
 
-    // Use INSERT ... ON CONFLICT for PostgreSQL (upsert)
-    const values: any[] = [];
-    const placeholders: string[] = [];
+    // Check for existing attendance records in database before inserting
+    const existingCheckPromises = validRecords.map(async (record) => {
+      const checkSql = `SELECT id, status FROM attendance WHERE student_id = ? AND date = ?`;
+      const [existingRows]: any = await db.query(checkSql, [record.student_id, record.date]);
+      return {
+        student_id: record.student_id,
+        date: record.date,
+        exists: existingRows.length > 0,
+        currentStatus: existingRows.length > 0 ? existingRows[0].status : null,
+        newStatus: record.status
+      };
+    });
 
-    for (const record of validRecords) {
-      placeholders.push("(?, ?, ?, ?)");
-      values.push(
-        record.student_id,
-        record.date,
-        record.status,
-        record.notes
-      );
+    const existingChecks = await Promise.all(existingCheckPromises);
+    const existingRecords = existingChecks.filter(check => check.exists);
+    const newRecords = validRecords.filter(record => 
+      !existingChecks.find(check => 
+        check.student_id === record.student_id && 
+        check.date === record.date && 
+        check.exists
+      )
+    );
+
+    console.log('📊 Existing records found:', existingRecords.length);
+    console.log('📊 New records to insert:', newRecords.length);
+
+    let insertedCount = 0;
+    let updatedCount = 0;
+
+    // Insert new records
+    if (newRecords.length > 0) {
+      const insertValues: any[] = [];
+      const insertPlaceholders: string[] = [];
+
+      for (const record of newRecords) {
+        insertPlaceholders.push("(?, ?, ?, ?)");
+        insertValues.push(
+          record.student_id,
+          record.date,
+          record.status,
+          record.notes
+        );
+      }
+
+      const insertSql = `
+        INSERT INTO attendance (student_id, date, status, notes)
+        VALUES ${insertPlaceholders.join(", ")}
+      `;
+
+      console.log('💾 Insert SQL:', insertSql);
+      console.log('📊 Insert Values:', insertValues);
+
+      try {
+        await db.query(insertSql, insertValues);
+        insertedCount = newRecords.length;
+        console.log('✅ New attendance records inserted:', insertedCount);
+      } catch (dbError: any) {
+        console.error('❌ Database insert error:', dbError);
+        
+        // Handle unique constraint violation
+        if (dbError.message && (
+            dbError.message.includes('duplicate key') || 
+            dbError.message.includes('UNIQUE constraint') ||
+            dbError.message.includes('Duplicate entry') ||
+            dbError.code === '23505' || 
+            dbError.code === 'ER_DUP_ENTRY'
+          )) {
+          return NextResponse.json(
+            { 
+              success: false,
+              message: "Duplicate attendance detected: One or more students already have attendance recorded for this date. Each student can only have one attendance record per day.",
+              error: "DUPLICATE_ATTENDANCE_EXISTS",
+              hint: "To modify existing attendance, use the update function instead of creating new records."
+            },
+            { 
+              status: 409, // Conflict
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+              },
+            }
+          );
+        }
+        
+        // Re-throw other database errors
+        throw dbError;
+      }
     }
 
-    const sql = `
-      INSERT INTO attendance (student_id, date, status, notes)
-      VALUES ${placeholders.join(", ")}
-      ON CONFLICT (student_id, date)
-      DO UPDATE SET
-        status = EXCLUDED.status,
-        notes = EXCLUDED.notes,
-        updated_at = CURRENT_TIMESTAMP
-    `;
-
-    console.log('💾 Save SQL:', sql);
-    console.log('📊 Save Values:', values);
-
-    await db.query(sql, values);
-
-    console.log('✅ Attendance saved successfully');
+    // Update existing records
+    if (existingRecords.length > 0) {
+      for (const existingRecord of existingRecords) {
+        const updateRecord = validRecords.find(r => 
+          r.student_id === existingRecord.student_id && 
+          r.date === existingRecord.date
+        );
+        
+        if (updateRecord) {
+          const updateSql = `
+            UPDATE attendance 
+            SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE student_id = ? AND date = ?
+          `;
+          
+          await db.query(updateSql, [
+            updateRecord.status,
+            updateRecord.notes,
+            updateRecord.student_id,
+            updateRecord.date
+          ]);
+          
+          updatedCount++;
+          console.log(`✅ Updated attendance for student ${updateRecord.student_id} on ${updateRecord.date}: ${existingRecord.currentStatus} → ${updateRecord.status}`);
+        }
+      }
+    }
 
     // Trigger sync notification for real-time updates
     try {
