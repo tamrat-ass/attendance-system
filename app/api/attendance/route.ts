@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+// Handle CORS preflight requests
+export async function OPTIONS(req: Request) {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      'Access-Control-Max-Age': '86400',
+    },
+  });
+}
+
 // GET attendance records with filters
 export async function GET(req: Request) {
   try {
@@ -47,6 +60,12 @@ export async function GET(req: Request) {
       message: "Attendance records fetched successfully",
       count: rows.length,
       data: rows,
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      },
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -123,6 +142,12 @@ export async function POST(req: Request) {
     return NextResponse.json({
       message: `Attendance saved successfully for ${placeholders.length} students`,
       count: placeholders.length,
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      },
     });
   } catch (error: any) {
     return NextResponse.json(
