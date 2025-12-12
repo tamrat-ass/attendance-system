@@ -169,10 +169,13 @@ export default function AttendanceMarking() {
       const response = await fetch(`/api/attendance?date=${selectedDate}&class=${selectedClass}&_t=${Date.now()}`, {
         headers: {
           'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Pragma': 'no-cache',
+          'Content-Type': 'application/json'
         }
       });
       const data = await response.json();
+      
+      console.log('📥 Web GET Response:', data);
 
       console.log('Attendance API response:', data);
 
