@@ -38,10 +38,11 @@ export default function AttendanceMarking() {
   const [loading, setLoading] = useState(false);
   const { metrics, measureApiCall } = usePerformance('AttendanceMarking');
   const [selectedDate, setSelectedDate] = useState(() => {
+    // Use actual current Gregorian date for API calls
+    const actualToday = new Date().toISOString().split('T')[0];
     const currentEthDate = getCurrentSimpleEthiopianDate();
-    const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
-    console.log('Initial date - Ethiopian:', currentEthDate, 'Gregorian:', gregorianDate);
-    return gregorianDate;
+    console.log('Initial date - Ethiopian:', currentEthDate, 'Actual Gregorian:', actualToday);
+    return actualToday;
   });
   const [selectedClass, setSelectedClass] = useState('');
   const [studentStatus, setStudentStatus] = useState<{ [key: number]: 'present' | 'absent' | 'late' | 'permission' }>({});
