@@ -5,6 +5,7 @@ import '../providers/attendance_provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/student.dart';
 import '../utils/ethiopian_date.dart';
+import '../utils/correct_ethiopian_date.dart';
 import '../utils/app_colors.dart';
 import '../services/api_service.dart';
 
@@ -26,7 +27,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   bool _isEditMode = false;
   
   // Initialize with current Ethiopian date, but store as Gregorian for API
-  String _selectedDate = EthiopianDateUtils.getCurrentGregorianForApi();
+  String _selectedDate = CorrectEthiopianDateUtils.getCurrentGregorianForApi();
 
   @override
   void initState() {
@@ -94,7 +95,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<void> _selectDate() async {
     // Convert current Gregorian date back to Ethiopian for display
-    final currentEthiopian = EthiopianDateUtils.gregorianToEthiopianFromString(_selectedDate);
+    final currentEthiopian = CorrectEthiopianDateUtils.gregorianToEthiopianFromString(_selectedDate);
     
     // Show Ethiopian date picker dialog
     await showDialog(
@@ -137,7 +138,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         value: selectedMonth,
                         items: List.generate(13, (index) {
                           final month = index + 1;
-                          final monthName = EthiopianDateUtils.ethiopianMonths[index];
+                          final monthName = CorrectEthiopianDateUtils.ethiopianMonths[index];
                           return DropdownMenuItem(value: month, child: Text('$month - $monthName'));
                         }),
                         onChanged: (value) {
@@ -179,7 +180,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               onPressed: () {
                 // Convert selected Ethiopian date to Gregorian for storage
                 final ethiopianDate = {'year': selectedYear, 'month': selectedMonth, 'day': selectedDay};
-                final gregorianDate = EthiopianDateUtils.ethiopianToGregorian(ethiopianDate);
+                final gregorianDate = CorrectEthiopianDateUtils.ethiopianToGregorian(ethiopianDate);
                 
                 setState(() {
                   _selectedDate = gregorianDate;
@@ -789,8 +790,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             Text(
                               () {
                                 // Convert Gregorian date back to Ethiopian for display
-                                final ethiopianDate = EthiopianDateUtils.gregorianToEthiopianFromString(_selectedDate);
-                                return EthiopianDateUtils.formatEthiopianDate(ethiopianDate);
+                                final ethiopianDate = CorrectEthiopianDateUtils.gregorianToEthiopianFromString(_selectedDate);
+                                return CorrectEthiopianDateUtils.formatEthiopianDate(ethiopianDate);
                               }(),
                               style: const TextStyle(
                                 color: Colors.white,
