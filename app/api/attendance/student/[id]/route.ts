@@ -28,7 +28,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       JOIN students s ON a.student_id = s.id
       WHERE a.student_id = ?
     `;
-    const values: any[] = [parseInt(studentId)];
+    const studentIdNum = parseInt(studentId);
+    if (isNaN(studentIdNum)) {
+      return NextResponse.json(
+        { 
+          success: false,
+          message: "Invalid student ID" 
+        },
+        { status: 400 }
+      );
+    }
+    
+    const values: any[] = [studentIdNum];
 
     if (startDate && endDate) {
       sql += " AND a.date BETWEEN ? AND ?";
@@ -43,7 +54,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
     sql += " ORDER BY a.date DESC";
     
-    if (limit) {
+    if (limit && !isNaN(parseInt(limit))) {
       sql += " LIMIT ?";
       values.push(parseInt(limit));
     }

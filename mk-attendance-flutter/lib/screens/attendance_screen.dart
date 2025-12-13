@@ -47,9 +47,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     await studentProvider.loadStudents();
     await studentProvider.loadClasses();
     
-    if (studentProvider.classes.isNotEmpty && _selectedClass == null) {
+    // Set default to "All Classes" if no class is selected
+    if (_selectedClass == null) {
       setState(() {
-        _selectedClass = studentProvider.classes.first;
+        _selectedClass = "All Classes";
       });
       _loadExistingAttendance();
     }
@@ -63,9 +64,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     print('Class: $_selectedClass');
     
     final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
+    
+    // If "All Classes" is selected, load attendance for all classes (don't filter by class)
     await attendanceProvider.loadAttendance(
       date: _selectedDate,
-      className: _selectedClass,
+      className: _selectedClass == "All Classes" ? null : _selectedClass,
     );
     
     print('Loaded attendance records: ${attendanceProvider.attendanceRecords.length}');
@@ -598,15 +601,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Color _getStatusColor(String? status) {
     switch (status) {
       case 'present':
-        return Colors.green;
+        return Colors.green;      // 🟢 Green for Present
       case 'absent':
-        return Colors.red;
+        return Colors.red;        // 🔴 Red for Absent
       case 'late':
-        return Colors.orange;
+        return Colors.orange;     // 🟠 Orange for Late
       case 'permission':
-        return Colors.blue;
+        return Colors.blue;       // 🔵 Blue for Permission
       default:
-        return Colors.grey.shade300;
+        return Colors.grey.shade300; // Grey for not marked
     }
   }
 
@@ -732,12 +735,20 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               style: const TextStyle(color: Colors.white, fontSize: 16),
                               icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
                               isExpanded: true,
-                              items: studentProvider.classes.map((className) {
-                                return DropdownMenuItem(
-                                  value: className,
-                                  child: Text(className, style: const TextStyle(color: Colors.white)),
-                                );
-                              }).toList(),
+                              items: [
+                                // Add "All Classes" option first
+                                const DropdownMenuItem(
+                                  value: "All Classes",
+                                  child: Text("All Classes", style: TextStyle(color: Colors.white)),
+                                ),
+                                // Then add individual classes
+                                ...studentProvider.classes.map((className) {
+                                  return DropdownMenuItem(
+                                    value: className,
+                                    child: Text(className, style: const TextStyle(color: Colors.white)),
+                                  );
+                                }).toList(),
+                              ],
                               onChanged: (value) {
                                 setState(() {
                                   _selectedClass = value;
@@ -910,8 +921,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                            student.phone.contains(_searchQuery) ||
                            student.id.toString().contains(_searchQuery);
                   }).toList();
+                } else if (_selectedClass == "All Classes") {
+                  // Show ALL students from ALL classes
+                  students = studentProvider.students;
                 } else {
-                  // Show only students from selected class when no search
+                  // Show only students from selected class
                   students = studentProvider.getStudentsByClass(_selectedClass!);
                 }
                 
@@ -925,7 +939,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         Text(
                           _searchQuery.isNotEmpty 
                               ? 'No students found matching "$_searchQuery"'
-                              : 'No students in $_selectedClass',
+                              : _selectedClass == "All Classes" 
+                                  ? 'No students found in any class'
+                                  : 'No students in $_selectedClass',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.grey.shade600,
