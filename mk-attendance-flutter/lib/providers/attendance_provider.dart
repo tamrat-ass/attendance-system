@@ -78,7 +78,7 @@ class AttendanceProvider with ChangeNotifier {
     return _studentNotes[studentId] ?? '';
   }
 
-  Future<Map<String, dynamic>> saveAttendance(String date, int classId) async {
+  Future<Map<String, dynamic>> saveAttendance(String date) async {
     if (_studentStatus.isEmpty) {
       _errorMessage = 'No attendance marked';
       notifyListeners();

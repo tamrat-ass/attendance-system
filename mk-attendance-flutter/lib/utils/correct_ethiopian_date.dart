@@ -1,4 +1,4 @@
-class EthiopianDateUtils {
+class CorrectEthiopianDateUtils {
   static const List<String> ethiopianMonths = [
     'መስከረም', 'ጥቅምት', 'ኅዳር', 'ታኅሳስ', 'ጥር', 'የካቲት',
     'መጋቢት', 'ሚያዝያ', 'ግንቦት', 'ሰኔ', 'ሐምሌ', 'ነሐሴ', 'ጳጉሜን'
@@ -8,24 +8,23 @@ class EthiopianDateUtils {
     'እሑድ', 'ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'ዓርብ', 'ቅዳሜ'
   ];
 
-  /// Check if Gregorian year is leap year
-  static bool _isLeapYear(int year) {
-    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-  }
-
-  /// Correct Ethiopian date conversion
+  /// Correct Ethiopian date conversion based on your specification
   /// December 13, 2025 = ታህሳስ 4, 2018
   static Map<String, int> gregorianToEthiopian(DateTime gregorianDate) {
     final year = gregorianDate.year;
     final month = gregorianDate.month;
     final day = gregorianDate.day;
     
-    // Ethiopian year = Gregorian year - 7
+    // Based on your correction: December 13, 2025 = ታህሳስ 4, 2018
+    // This means Ethiopian year = Gregorian year - 7
+    // And we need to calculate the correct month and day
+    
     int ethYear = year - 7; // 2025 - 7 = 2018 ✓
     int ethMonth;
     int ethDay;
     
     // Ethiopian New Year starts around September 11/12
+    // Let's calculate based on the known reference point
     if (month >= 9) {
       // September to December (Ethiopian months 1-4)
       if (month == 9) {
@@ -64,6 +63,8 @@ class EthiopianDateUtils {
       }
     } else {
       // January to August (Ethiopian months 5-12)
+      ethYear = year - 7; // Keep same year for these months
+      
       if (month == 1) {
         ethMonth = 5; // ጥር
         ethDay = day + 21;
@@ -152,13 +153,12 @@ class EthiopianDateUtils {
   }
 
   /// Convert Ethiopian date to Gregorian format for API calls
-  /// This uses the same logic as the web app for consistency
   static String ethiopianToGregorian(Map<String, int> ethiopianDate) {
     final ethYear = ethiopianDate['year']!;
     final ethMonth = ethiopianDate['month']!;
     final ethDay = ethiopianDate['day']!;
     
-    // Use the same conversion logic as web app
+    // Simple conversion for API compatibility
     final gregYear = ethYear + 7;
     int gregMonth = ethMonth + 8;
     int gregDay = ethDay;
@@ -182,29 +182,10 @@ class EthiopianDateUtils {
   }
 
   /// Convert Gregorian date string back to Ethiopian
-  /// This uses the same logic as the web app for consistency
   static Map<String, int> gregorianToEthiopianFromString(String gregorianString) {
     try {
-      final parts = gregorianString.split('-');
-      final year = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final day = int.parse(parts[2]);
-      
-      // Use the same reverse conversion logic as web app
-      final ethYear = year - 7;
-      int ethMonth = month - 8;
-      final ethDay = day;
-      
-      // Handle month underflow
-      if (ethMonth <= 0) {
-        ethMonth = ethMonth + 12;
-      }
-      
-      // Ensure valid ranges
-      if (ethMonth <= 0) ethMonth = 1;
-      if (ethMonth > 13) ethMonth = 13;
-      
-      return {'year': ethYear, 'month': ethMonth, 'day': ethDay};
+      final date = DateTime.parse(gregorianString);
+      return gregorianToEthiopian(date);
     } catch (e) {
       return getCurrentEthiopianDate();
     }
@@ -215,7 +196,7 @@ class EthiopianDateUtils {
     return DateTime.now().toIso8601String().split('T')[0];
   }
 
-  /// Format date for display using accurate conversion
+  /// Format date for display
   static String formatDate(String gregorianDateString) {
     try {
       final date = DateTime.parse(gregorianDateString);

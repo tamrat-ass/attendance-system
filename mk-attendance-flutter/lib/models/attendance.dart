@@ -4,7 +4,6 @@ class Attendance {
   final String studentName;
   final String date;
   final String status;
-  final int classId;
   final String className;
   final String? notes;
   final DateTime createdAt;
@@ -16,7 +15,6 @@ class Attendance {
     required this.studentName,
     required this.date,
     required this.status,
-    required this.classId,
     required this.className,
     this.notes,
     required this.createdAt,
@@ -30,7 +28,6 @@ class Attendance {
       studentName: json['student_name'] ?? json['studentName'] ?? '',
       date: json['date'] ?? '',
       status: json['status'] ?? 'absent',
-      classId: json['class_id'] ?? json['classId'] ?? 0,
       className: json['class_name'] ?? json['className'] ?? '',
       notes: json['notes'],
       createdAt: DateTime.parse(json['created_at'] ?? json['createdAt'] ?? DateTime.now().toIso8601String()),
@@ -45,7 +42,6 @@ class Attendance {
       'student_name': studentName,
       'date': date,
       'status': status,
-      'class_id': classId,
       'class_name': className,
       'notes': notes,
       'created_at': createdAt.toIso8601String(),
@@ -59,7 +55,6 @@ class Attendance {
     String? studentName,
     String? date,
     String? status,
-    int? classId,
     String? className,
     String? notes,
     DateTime? createdAt,
@@ -71,7 +66,6 @@ class Attendance {
       studentName: studentName ?? this.studentName,
       date: date ?? this.date,
       status: status ?? this.status,
-      classId: classId ?? this.classId,
       className: className ?? this.className,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
@@ -87,7 +81,7 @@ class Attendance {
         other.studentId == studentId &&
         other.date == date &&
         other.status == status &&
-        other.classId == classId;
+        other.className == className;
   }
 
   @override
@@ -96,11 +90,11 @@ class Attendance {
         studentId.hashCode ^
         date.hashCode ^
         status.hashCode ^
-        classId.hashCode;
+        className.hashCode;
   }
 
   @override
   String toString() {
-    return 'Attendance(id: $id, studentId: $studentId, studentName: $studentName, date: $date, status: $status, classId: $classId, className: $className)';
+    return 'Attendance(id: $id, studentId: $studentId, studentName: $studentName, date: $date, status: $status, className: $className)';
   }
 }

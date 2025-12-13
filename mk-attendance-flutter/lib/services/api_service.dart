@@ -291,7 +291,7 @@ class ApiService {
     }
   }
 
-  Future<bool> markAttendance(int studentId, String date, String status, int classId) async {
+  Future<bool> markAttendance(int studentId, String date, String status) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/attendance/mark'),
@@ -300,7 +300,6 @@ class ApiService {
           'student_id': studentId,
           'date': date,
           'status': status,
-          'class_id': classId,
         }),
       );
 

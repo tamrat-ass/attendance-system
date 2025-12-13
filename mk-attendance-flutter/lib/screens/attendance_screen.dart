@@ -25,8 +25,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   Map<int, String> _savedStudentStatus = {}; // Track saved attendance separately
   bool _isEditMode = false;
   
-  // Initialize with current date in Gregorian format
-  String _selectedDate = DateTime.now().toIso8601String().split('T')[0];
+  // Initialize with current Ethiopian date, but store as Gregorian for API
+  String _selectedDate = EthiopianDateUtils.getCurrentGregorianForApi();
 
   @override
   void initState() {
@@ -93,22 +93,110 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.parse(_selectedDate),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now().add(const Duration(days: 30)),
-    );
+    // Convert current Gregorian date back to Ethiopian for display
+    final currentEthiopian = EthiopianDateUtils.gregorianToEthiopianFromString(_selectedDate);
     
-    if (picked != null) {
-      setState(() {
-        _selectedDate = picked.toIso8601String().split('T')[0];
-        _studentStatus.clear();
-        _studentNotes.clear();
-        _lockedStudents.clear();
-      });
-      _loadExistingAttendance();
-    }
+    // Show Ethiopian date picker dialog
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        int selectedYear = currentEthiopian['year']!;
+        int selectedMonth = currentEthiopian['month']!;
+        int selectedDay = currentEthiopian['day']!;
+        
+        return AlertDialog(
+          title: const Text('Select Ethiopian Date'),
+          content: StatefulBuilder(
+            builder: (context, setDialogState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Year picker
+                  Row(
+                    children: [
+                      const Text('Year: '),
+                      DropdownButton<int>(
+                        value: selectedYear,
+                        items: List.generate(10, (index) {
+                          final year = DateTime.now().year - 7 - 5 + index; // Ethiopian years around current
+                          return DropdownMenuItem(value: year, child: Text(year.toString()));
+                        }),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedYear = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  // Month picker
+                  Row(
+                    children: [
+                      const Text('Month: '),
+                      DropdownButton<int>(
+                        value: selectedMonth,
+                        items: List.generate(13, (index) {
+                          final month = index + 1;
+                          final monthName = EthiopianDateUtils.ethiopianMonths[index];
+                          return DropdownMenuItem(value: month, child: Text('$month - $monthName'));
+                        }),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedMonth = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  // Day picker
+                  Row(
+                    children: [
+                      const Text('Day: '),
+                      DropdownButton<int>(
+                        value: selectedDay,
+                        items: List.generate(30, (index) {
+                          final day = index + 1;
+                          return DropdownMenuItem(value: day, child: Text(day.toString()));
+                        }),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            selectedDay = value!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // Convert selected Ethiopian date to Gregorian for storage
+                final ethiopianDate = {'year': selectedYear, 'month': selectedMonth, 'day': selectedDay};
+                final gregorianDate = EthiopianDateUtils.ethiopianToGregorian(ethiopianDate);
+                
+                setState(() {
+                  _selectedDate = gregorianDate;
+                  _studentStatus.clear();
+                  _studentNotes.clear();
+                  _lockedStudents.clear();
+                });
+                
+                Navigator.of(context).pop();
+                _loadExistingAttendance();
+              },
+              child: const Text('Select'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _handleStatusChange(int studentId, String status) {
@@ -448,7 +536,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     attendanceProvider.studentNotes.addAll(_studentNotes);
     
     print('Calling saveAttendance with date: $_selectedDate, isEdit: $_isEditMode');
-    final result = await attendanceProvider.saveAttendance(_selectedDate, 1);
+    final result = await attendanceProvider.saveAttendance(_selectedDate);
     print('Save result: $result');
     print('Provider error: ${attendanceProvider.errorMessage}');
     
@@ -699,7 +787,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                             const Icon(Icons.calendar_today, color: Colors.white, size: 20),
                             const SizedBox(width: 12),
                             Text(
-                              EthiopianDateUtils.formatDate(_selectedDate),
+                              () {
+                                // Convert Gregorian date back to Ethiopian for display
+                                final ethiopianDate = EthiopianDateUtils.gregorianToEthiopianFromString(_selectedDate);
+                                return EthiopianDateUtils.formatEthiopianDate(ethiopianDate);
+                              }(),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
