@@ -52,7 +52,71 @@ export default function AttendanceMarking() {
   const [lockedStudents, setLockedStudents] = useState<Set<number>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  const [isAttendanceLocked, setIsAttendanceLocked] = useState(false);
+  const [lockedBy, setLockedBy] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ username: string; role: string } | null>(null);
   const { toast } = useToast();
+
+  // Check attendance lock status
+  const checkLockStatus = async () => {
+    try {
+      const response = await fetch('/api/attendance/lock');
+      const data = await response.json();
+      if (data.success) {
+        setIsAttendanceLocked(data.data.is_locked);
+        setLockedBy(data.data.locked_by);
+      }
+    } catch (error) {
+      console.error('Error checking lock status:', error);
+    }
+  };
+
+  // Toggle attendance lock (Admin only)
+  const toggleAttendanceLock = async () => {
+    if (!currentUser || currentUser.role !== 'admin') {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can control attendance lock.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const action = isAttendanceLocked ? 'unlock' : 'lock';
+      const response = await fetch('/api/attendance/lock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: action,
+          admin_username: currentUser.username
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsAttendanceLocked(data.data.is_locked);
+        setLockedBy(data.data.locked_by);
+        toast({
+          title: `Attendance ${action}ed`,
+          description: data.message,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: data.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to toggle attendance lock",
+        variant: "destructive"
+      });
+    }
+  };
 
   // Fetch students from database
   const fetchStudents = async () => {
@@ -110,6 +174,11 @@ export default function AttendanceMarking() {
 
   useEffect(() => {
     fetchStudents();
+    checkLockStatus();
+    
+    // Get current user info (you may need to implement this based on your auth system)
+    // For now, assuming admin user - you should replace this with actual auth check
+    setCurrentUser({ username: 'admin', role: 'admin' });
     
     // Always sync to today's date on component mount
     const currentEthDate = getCurrentSimpleEthiopianDate();
@@ -304,6 +373,16 @@ export default function AttendanceMarking() {
 
   // Save attendance records with enhanced duplicate validation
   const handleSaveAttendance = async () => {
+    // Check if attendance is locked
+    if (isAttendanceLocked) {
+      toast({
+        title: "Attendance Locked",
+        description: `Attendance marking is currently locked by administrator: ${lockedBy}. Please contact the admin to unlock.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
     const markedCount = Object.keys(studentStatus).length;
     
     if (markedCount === 0) {
@@ -979,9 +1058,34 @@ export default function AttendanceMarking() {
             </div>
 
             <div className="mt-4 flex flex-col sm:flex-row gap-2">
-              <Button onClick={handleSaveAttendance} size="sm" className="w-full sm:w-auto">
+              <Button 
+                onClick={handleSaveAttendance} 
+                size="sm" 
+                className="w-full sm:w-auto"
+                disabled={isAttendanceLocked}
+              >
                 💾 {isEditMode ? 'Update Attendance' : `Save Attendance${Object.keys(studentStatus).length > 0 ? ` (${Object.keys(studentStatus).length})` : ''}`}
               </Button>
+              
+              {/* Admin Lock Button - Only visible to admins */}
+              {currentUser?.role === 'admin' && (
+                <Button 
+                  onClick={toggleAttendanceLock}
+                  variant={isAttendanceLocked ? "destructive" : "secondary"}
+                  size="sm" 
+                  className="w-full sm:w-auto"
+                >
+                  {isAttendanceLocked ? '🔒 Unlock Attendance' : '🔓 Lock Attendance'}
+                </Button>
+              )}
+              
+              {/* Lock Status Indicator */}
+              {isAttendanceLocked && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                  🔒 Locked by: {lockedBy}
+                </div>
+              )}
+              
               <Button onClick={handleExportToExcel} variant="outline" size="sm" className="flex items-center justify-center gap-2 w-full sm:w-auto">
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export CSV (Current Class)</span>

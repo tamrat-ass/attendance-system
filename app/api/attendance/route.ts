@@ -108,6 +108,41 @@ export async function GET(req: Request) {
 // UNIFIED POST - Save attendance records (bulk)
 export async function POST(req: Request) {
   try {
+    // Check if attendance is locked (Admin Lock System)
+    const userAgent = req.headers.get('user-agent') || '';
+    const referer = req.headers.get('referer') || '';
+    const isWebRequest = referer.includes('vercel.app') || referer.includes('localhost:3000') || 
+                        (!userAgent.includes('Dart') && !userAgent.includes('Flutter'));
+    
+    if (isWebRequest) {
+      // Check lock status for web requests
+      try {
+        const [lockRows]: any = await db.query('SELECT is_locked, locked_by FROM attendance_lock WHERE id = 1');
+        if (lockRows.length > 0 && lockRows[0].is_locked) {
+          console.log('🔒 Attendance marking blocked - system is locked by admin:', lockRows[0].locked_by);
+          return NextResponse.json(
+            { 
+              success: false,
+              message: `Attendance marking is currently locked by administrator: ${lockRows[0].locked_by}. Please contact the admin to unlock attendance marking.`,
+              error: "ATTENDANCE_LOCKED",
+              locked_by: lockRows[0].locked_by
+            },
+            { 
+              status: 423, // 423 Locked
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+              },
+            }
+          );
+        }
+      } catch (lockError) {
+        // If lock table doesn't exist, continue (system is unlocked)
+        console.log('Lock table not found, continuing with unlocked state');
+      }
+    }
+
     const body = await req.json();
     const { records } = body; // Array of { student_id, date, status, notes }
 
