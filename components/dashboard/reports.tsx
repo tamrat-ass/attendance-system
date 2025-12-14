@@ -5,15 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SimpleEthiopianDateInput } from '@/components/ui/simple-ethiopian-date-input';
 import { Download, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getCurrentSimpleEthiopianDate, 
-  simpleEthiopianToGregorian, 
-  gregorianToSimpleEthiopian,
+  simpleEthiopianToDbFormat,
+  dbFormatToSimpleEthiopian,
   formatSimpleEthiopianDate 
 } from '@/lib/simple-ethiopian-date';
+import ReportsDebug from './reports-debug';
 
 interface Student {
   id: number;
@@ -40,23 +40,21 @@ export default function Reports() {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'present' | 'absent' | 'late' | 'permission'>('all');
   const { toast } = useToast();
 
+  // Use Ethiopian dates since that's how they're stored in the database
   const [startDate, setStartDate] = useState(() => {
-    // 30 days ago in Ethiopian calendar
+    // Start from beginning of current Ethiopian month
     const currentEthDate = getCurrentSimpleEthiopianDate();
-    const startEthDate = { ...currentEthDate, day: Math.max(1, currentEthDate.day - 30) };
-    if (startEthDate.day > currentEthDate.day) {
-      startEthDate.month = Math.max(1, startEthDate.month - 1);
-      if (startEthDate.month === 13) {
-        startEthDate.day = Math.min(6, startEthDate.day);
-      } else {
-        startEthDate.day = Math.min(30, startEthDate.day);
-      }
-    }
-    return simpleEthiopianToGregorian(startEthDate);
+    const startEthDate = { ...currentEthDate, day: 1 };
+    const ethiopianStart = `${startEthDate.year.toString().padStart(4, '0')}-${startEthDate.month.toString().padStart(2, '0')}-${startEthDate.day.toString().padStart(2, '0')}`;
+    console.log('Initial start date (Ethiopian DB format):', ethiopianStart);
+    return ethiopianStart;
   });
   const [endDate, setEndDate] = useState(() => {
+    // End at current Ethiopian date
     const currentEthDate = getCurrentSimpleEthiopianDate();
-    return simpleEthiopianToGregorian(currentEthDate);
+    const ethiopianEnd = `${currentEthDate.year.toString().padStart(4, '0')}-${currentEthDate.month.toString().padStart(2, '0')}-${currentEthDate.day.toString().padStart(2, '0')}`;
+    console.log('Initial end date (Ethiopian DB format):', ethiopianEnd);
+    return ethiopianEnd;
   });
 
   // Fetch students and attendance
@@ -64,24 +62,44 @@ export default function Reports() {
     setLoading(true);
     try {
       // Fetch students
-      const studentsRes = await fetch('/api/students');
+      const studentsRes = await fetch('/api/students?limit=10000'); // Increase limit to get all students
       const studentsData = await studentsRes.json();
       
-      // Fetch attendance
-      const attendanceRes = await fetch(`/api/attendance?start_date=${startDate}&end_date=${endDate}`);
+      // Fetch attendance with date range
+      const attendanceUrl = `/api/attendance?start_date=${startDate}&end_date=${endDate}`;
+      console.log('Fetching attendance from:', attendanceUrl);
+      const attendanceRes = await fetch(attendanceUrl);
       const attendanceData = await attendanceRes.json();
+      console.log('Attendance API response:', attendanceData);
 
-      if (studentsRes.ok) {
-        setStudents(studentsData.data || []);
+      if (studentsRes.ok && studentsData.data) {
+        setStudents(studentsData.data);
+        console.log('Students loaded:', studentsData.data.length);
+      } else {
+        console.error('Failed to load students:', studentsData);
+        toast({
+          title: "Error",
+          description: "Failed to load students data",
+          variant: "destructive"
+        });
       }
 
-      if (attendanceRes.ok) {
-        setAttendance(attendanceData.data || []);
+      if (attendanceRes.ok && attendanceData.data) {
+        setAttendance(attendanceData.data);
+        console.log('Attendance records loaded:', attendanceData.data.length);
+      } else {
+        console.error('Failed to load attendance:', attendanceData);
+        toast({
+          title: "Error", 
+          description: "Failed to load attendance data",
+          variant: "destructive"
+        });
       }
     } catch (error: any) {
+      console.error('Fetch error:', error);
       toast({
         title: "Error",
-        description: "Failed to load report data",
+        description: `Failed to load report data: ${error.message}`,
         variant: "destructive"
       });
     } finally {
@@ -94,6 +112,13 @@ export default function Reports() {
   }, [startDate, endDate]);
 
   const stats = useMemo(() => {
+    console.log('Computing stats with:', { 
+      studentsCount: students.length, 
+      attendanceCount: attendance.length,
+      startDate,
+      endDate
+    });
+    
     if (attendance.length === 0) {
       return {
         totalRecords: 0,
@@ -125,7 +150,8 @@ export default function Reports() {
     const dateChartData = Object.entries(byDate)
       .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
       .map(([date, counts]) => {
-        const ethDate = gregorianToSimpleEthiopian(date);
+        // Date is already in Ethiopian format from database
+        const ethDate = dbFormatToSimpleEthiopian(date);
         return {
           date: `${ethDate.day}/${ethDate.month}`,
           present: counts.present,
@@ -176,7 +202,7 @@ export default function Reports() {
     }));
 
     return {
-      totalRecords: students.length,
+      totalRecords: studentStats.length, // Count of students with attendance records
       presentCount,
       absentCount,
       lateCount,
@@ -220,8 +246,8 @@ export default function Reports() {
     });
 
     const headers = Object.keys(data[0]);
-    const startEthDate = formatSimpleEthiopianDate(gregorianToSimpleEthiopian(startDate), true);
-    const endEthDate = formatSimpleEthiopianDate(gregorianToSimpleEthiopian(endDate), true);
+    const startEthDate = formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(startDate), true);
+    const endEthDate = formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(endDate), true);
     
     const csv = [
       `Attendance Report (${startEthDate} to ${endEthDate})`,
@@ -249,6 +275,11 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
+      {/* Debug Tool - Remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <ReportsDebug />
+      )}
+      
       {/* Date Range Filter */}
       <Card className="border-2">
         <CardHeader>
@@ -256,21 +287,122 @@ export default function Reports() {
           <CardDescription>Select Ethiopian date range to view attendance reports</CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Quick Date Presets */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const currentEthDate = getCurrentSimpleEthiopianDate();
+                const todayEth = simpleEthiopianToDbFormat(currentEthDate);
+                setStartDate(todayEth);
+                setEndDate(todayEth);
+              }}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const currentEthDate = getCurrentSimpleEthiopianDate();
+                const endEth = simpleEthiopianToDbFormat(currentEthDate);
+                // Go back 7 days in Ethiopian calendar
+                const startEthDate = { ...currentEthDate, day: Math.max(1, currentEthDate.day - 7) };
+                if (startEthDate.day > currentEthDate.day) {
+                  // Went to previous month
+                  startEthDate.month = Math.max(1, startEthDate.month - 1);
+                  if (startEthDate.month === 13) {
+                    startEthDate.day = Math.min(6, startEthDate.day + 30);
+                  } else {
+                    startEthDate.day = Math.min(30, startEthDate.day + 30);
+                  }
+                }
+                const startEth = simpleEthiopianToDbFormat(startEthDate);
+                setStartDate(startEth);
+                setEndDate(endEth);
+              }}
+            >
+              Last 7 Days
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const currentEthDate = getCurrentSimpleEthiopianDate();
+                const endEth = simpleEthiopianToDbFormat(currentEthDate);
+                // Start from beginning of current Ethiopian month
+                const startEthDate = { ...currentEthDate, day: 1 };
+                const startEth = simpleEthiopianToDbFormat(startEthDate);
+                setStartDate(startEth);
+                setEndDate(endEth);
+              }}
+            >
+              This Month
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const currentEthDate = getCurrentSimpleEthiopianDate();
+                const endEth = simpleEthiopianToDbFormat(currentEthDate);
+                // Go back to previous month
+                const startEthDate = { 
+                  ...currentEthDate, 
+                  month: currentEthDate.month === 1 ? 13 : currentEthDate.month - 1,
+                  day: 1 
+                };
+                if (startEthDate.month === 13) {
+                  startEthDate.year = currentEthDate.year - 1;
+                }
+                const startEth = simpleEthiopianToDbFormat(startEthDate);
+                setStartDate(startEth);
+                setEndDate(endEth);
+              }}
+            >
+              Last Month
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <SimpleEthiopianDateInput
-              label="ከ ቀን (From Date)"
-              value={startDate}
-              onChange={setStartDate}
-              useAmharic={true}
-            />
-            <SimpleEthiopianDateInput
-              label="እስከ ቀን (To Date)"
-              value={endDate}
-              onChange={setEndDate}
-              useAmharic={true}
-            />
-            <div className="flex items-end">
-              <Button onClick={handleExportReport} className="w-full flex items-center gap-2" disabled={loading}>
+            <div className="space-y-2">
+              <Label htmlFor="start-date">ከ ቀን (From Date)</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full"
+                placeholder="YYYY-MM-DD (Ethiopian)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ethiopian: {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(startDate), true)}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end-date">እስከ ቀን (To Date)</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full"
+                placeholder="YYYY-MM-DD (Ethiopian)"
+              />
+              <p className="text-xs text-muted-foreground">
+                Ethiopian: {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(endDate), true)}
+              </p>
+            </div>
+            <div className="flex items-end gap-2">
+              <Button 
+                onClick={fetchData} 
+                variant="outline" 
+                className="flex items-center gap-2" 
+                disabled={loading}
+              >
+                🔄 Refresh
+              </Button>
+              <Button onClick={handleExportReport} className="flex items-center gap-2" disabled={loading}>
                 <Download className="w-4 h-4" />
                 Export Report
               </Button>
@@ -295,6 +427,20 @@ export default function Reports() {
         </Card>
       ) : (
         <>
+          {/* Debug Info (remove in production) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Card className="border-2 bg-yellow-50">
+              <CardContent className="py-4">
+                <div className="text-sm text-yellow-800">
+                  <strong>Debug Info:</strong> Students: {students.length}, Attendance: {attendance.length}, 
+                  Date Range (Ethiopian): {startDate} to {endDate}
+                  <br />
+                  <strong>Ethiopian Display:</strong> {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(startDate), true)} to {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(endDate), true)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Card 
@@ -357,7 +503,7 @@ export default function Reports() {
 
 
           {/* Filtered Student List */}
-          {stats.studentStats.length > 0 && (
+          {stats.studentStats.length > 0 ? (
             <Card className="border-2">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -449,6 +595,17 @@ export default function Reports() {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-2">
+              <CardContent className="py-12 text-center text-muted-foreground">
+                📊 No students found with attendance records for the selected date range.
+                <br />
+                <span className="text-sm">
+                  Total students in system: {students.length} | 
+                  Attendance records found: {attendance.length}
+                </span>
               </CardContent>
             </Card>
           )}
