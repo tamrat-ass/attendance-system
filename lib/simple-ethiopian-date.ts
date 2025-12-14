@@ -142,7 +142,15 @@ export function stringToSimpleEthiopian(dateString: string): SimpleEthiopianDate
   return getCurrentSimpleEthiopianDate();
 }
 
-// Convert to Gregorian for database storage (simplified)
+// Convert Ethiopian date to database storage format (Ethiopian YYYY-MM-DD)
+export function simpleEthiopianToDbFormat(ethDate: SimpleEthiopianDate): string {
+  const year = ethDate.year.toString().padStart(4, '0');
+  const month = ethDate.month.toString().padStart(2, '0');
+  const day = ethDate.day.toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// DEPRECATED: Convert to Gregorian for database storage (for backward compatibility)
 export function simpleEthiopianToGregorian(ethDate: SimpleEthiopianDate): string {
   // Simple approximation for database storage
   const gregYear = ethDate.year + 7;
@@ -167,7 +175,24 @@ export function simpleEthiopianToGregorian(ethDate: SimpleEthiopianDate): string
   return `${year}-${month}-${day}`;
 }
 
-// Convert Gregorian string back to Ethiopian (simplified)
+// Parse Ethiopian database format back to Ethiopian date object
+export function dbFormatToSimpleEthiopian(dbDateString: string): SimpleEthiopianDate {
+  try {
+    const [year, month, day] = dbDateString.split('-').map(Number);
+    
+    // Check if it's already in Ethiopian format (year < 2050)
+    if (year < 2050) {
+      return { year, month, day };
+    } else {
+      // Convert from Gregorian format (backward compatibility)
+      return gregorianToSimpleEthiopian(dbDateString);
+    }
+  } catch {
+    return getCurrentSimpleEthiopianDate();
+  }
+}
+
+// Convert Gregorian string back to Ethiopian (simplified) - for backward compatibility
 export function gregorianToSimpleEthiopian(gregorianString: string): SimpleEthiopianDate {
   try {
     const [year, month, day] = gregorianString.split('-').map(Number);

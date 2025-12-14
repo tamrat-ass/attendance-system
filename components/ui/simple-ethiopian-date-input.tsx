@@ -11,14 +11,16 @@ import {
   ETHIOPIAN_MONTHS_EN,
   getCurrentSimpleEthiopianDate,
   formatSimpleEthiopianDate,
+  simpleEthiopianToDbFormat,
+  dbFormatToSimpleEthiopian,
   simpleEthiopianToGregorian,
   gregorianToSimpleEthiopian
 } from '@/lib/simple-ethiopian-date';
 import { getSmartDefaultDate, getDateInfo, isToday as checkIsToday } from '@/lib/advanced-date-system';
 
 interface SimpleEthiopianDateInputProps {
-  value?: string; // Gregorian ISO string for compatibility
-  onChange: (gregorianIsoString: string) => void;
+  value?: string; // Ethiopian database format (YYYY-MM-DD)
+  onChange: (ethiopianDbFormat: string) => void;
   label?: string;
   useAmharic?: boolean;
   className?: string;
@@ -48,16 +50,16 @@ export function SimpleEthiopianDateInput({
       console.log('Initial sync to TODAY:', todayDate);
       setEthDate(todayDate);
       
-      // Notify parent component with today's date
-      const gregorianDate = simpleEthiopianToGregorian(todayDate);
-      onChange(gregorianDate);
+      // Notify parent component with today's date in Ethiopian format
+      const ethiopianDbDate = simpleEthiopianToDbFormat(todayDate);
+      onChange(ethiopianDbDate);
     }
   }, []); // Empty dependency array - only run once on mount
 
   // Update when value changes (user selection or parent update)
   useEffect(() => {
     if (value) {
-      const converted = gregorianToSimpleEthiopian(value);
+      const converted = dbFormatToSimpleEthiopian(value);
       console.log('Updating to provided value:', converted);
       setEthDate(converted);
     }
@@ -66,8 +68,8 @@ export function SimpleEthiopianDateInput({
   // Simplified date change handling
   const handleDateChange = (newEthDate: SimpleEthiopianDate) => {
     setEthDate(newEthDate);
-    const gregorianString = simpleEthiopianToGregorian(newEthDate);
-    onChange(gregorianString);
+    const ethiopianDbString = simpleEthiopianToDbFormat(newEthDate);
+    onChange(ethiopianDbString);
   };
 
   const handleYearChange = (year: number) => {

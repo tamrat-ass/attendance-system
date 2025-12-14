@@ -176,16 +176,32 @@ export function getCurrentEthiopianDate(): EthiopianDate {
   return gregorianToEthiopian(new Date());
 }
 
-// Convert Ethiopian date to ISO string for database storage
+// Convert Ethiopian date to ISO string for database storage (Ethiopian format)
 export function ethiopianToISOString(ethDate: EthiopianDate): string {
+  const year = ethDate.year.toString().padStart(4, '0');
+  const month = ethDate.month.toString().padStart(2, '0');
+  const day = ethDate.day.toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// DEPRECATED: Convert Ethiopian date to Gregorian ISO string (for backward compatibility)
+export function ethiopianToGregorianISOString(ethDate: EthiopianDate): string {
   const gregDate = ethiopianToGregorian(ethDate);
   return gregDate.toISOString().split('T')[0];
 }
 
-// Parse ISO string to Ethiopian date
+// Parse ISO string to Ethiopian date (handles both Ethiopian and Gregorian formats)
 export function isoStringToEthiopian(isoString: string): EthiopianDate {
-  const gregDate = new Date(isoString);
-  return gregorianToEthiopian(gregDate);
+  const [year, month, day] = isoString.split('-').map(Number);
+  
+  // Check if it's already in Ethiopian format (year < 2050)
+  if (year < 2050) {
+    return { year, month, day };
+  } else {
+    // Convert from Gregorian format
+    const gregDate = new Date(isoString);
+    return gregorianToEthiopian(gregDate);
+  }
 }
 
 // Get Ethiopian date input value (YYYY-MM-DD format but Ethiopian)

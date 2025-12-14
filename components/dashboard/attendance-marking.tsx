@@ -13,8 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { usePerformance } from '@/hooks/use-performance';
 import { 
   getCurrentSimpleEthiopianDate, 
+  simpleEthiopianToDbFormat,
   simpleEthiopianToGregorian, 
   gregorianToSimpleEthiopian,
+  dbFormatToSimpleEthiopian,
   formatSimpleEthiopianDate 
 } from '@/lib/simple-ethiopian-date';
 
@@ -39,9 +41,9 @@ export default function AttendanceMarking() {
   const { metrics, measureApiCall } = usePerformance('AttendanceMarking');
   const [selectedDate, setSelectedDate] = useState(() => {
     const currentEthDate = getCurrentSimpleEthiopianDate();
-    const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
-    console.log('Initial date - Ethiopian:', currentEthDate, 'Gregorian:', gregorianDate);
-    return gregorianDate;
+    const ethiopianDbDate = simpleEthiopianToDbFormat(currentEthDate);
+    console.log('Initial date - Ethiopian:', currentEthDate, 'DB Format:', ethiopianDbDate);
+    return ethiopianDbDate;
   });
   const [selectedClass, setSelectedClass] = useState('');
   const [studentStatus, setStudentStatus] = useState<{ [key: number]: 'present' | 'absent' | 'late' | 'permission' }>({});
@@ -110,8 +112,8 @@ export default function AttendanceMarking() {
     
     // Always sync to today's date on component mount
     const currentEthDate = getCurrentSimpleEthiopianDate();
-    const gregorianDate = simpleEthiopianToGregorian(currentEthDate);
-    setSelectedDate(gregorianDate);
+    const ethiopianDbDate = simpleEthiopianToDbFormat(currentEthDate);
+    setSelectedDate(ethiopianDbDate);
   }, []);
 
   // Fetch existing attendance for selected date and class
@@ -543,7 +545,7 @@ export default function AttendanceMarking() {
                 <div>
                   <CardTitle className="text-lg sm:text-xl">{selectedClass} - {classStudents.length} Students</CardTitle>
                   <CardDescription className="text-sm">
-                    Mark attendance for {formatSimpleEthiopianDate(gregorianToSimpleEthiopian(selectedDate), true)}
+                    Mark attendance for {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(selectedDate), true)}
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
