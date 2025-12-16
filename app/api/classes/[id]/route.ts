@@ -43,12 +43,14 @@ export async function PUT(
     }
 
     // Update class
+    console.log('Updating class with:', { id, name: name.trim(), description: description || null });
     const [updateResult] = await db.query(
       'UPDATE classes SET name = ?, description = ? WHERE id = ?',
       [name.trim(), description || null, id]
     );
 
     console.log('Class update result:', updateResult);
+    console.log('Affected rows:', (updateResult as any).affectedRows);
 
     // Update students table to reflect new class name
     const [studentUpdateResult] = await db.query(
@@ -57,12 +59,17 @@ export async function PUT(
     );
 
     console.log('Student class update result:', studentUpdateResult);
+    console.log('Students affected:', (studentUpdateResult as any).affectedRows);
 
     // Verify the update was successful
     const [verifyResult]: any = await db.query(
       'SELECT name, description FROM classes WHERE id = ?',
       [id]
     );
+
+    if (verifyResult.length === 0) {
+      throw new Error('Class not found after update');
+    }
 
     const updatedClass = verifyResult[0];
     console.log('Verified updated class:', updatedClass);
