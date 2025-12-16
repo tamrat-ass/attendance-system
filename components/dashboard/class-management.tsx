@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 
 interface Class {
   id: number;
-  class_name: string;
+  name: string;  // Changed from class_name to name
   description?: string;
   created_at: string;
 }
@@ -29,7 +29,7 @@ export default function ClassManagement() {
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
-    class_name: '',
+    name: '',  // Changed from class_name to name
     description: ''
   });
 
@@ -38,7 +38,7 @@ export default function ClassManagement() {
     setLoading(true);
     try {
       const response = await fetch('/api/classes', {
-        cache: 'no-store', // Ensure we get fresh data
+        cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache'
         }
@@ -48,14 +48,13 @@ export default function ClassManagement() {
       if (response.ok) {
         console.log('Fetched classes:', data.data);
         setClasses(data.data || []);
-        setError(''); // Clear any previous errors
+        setError('');
       } else {
         setError(data.message || 'Failed to fetch classes');
-        console.error('Failed to fetch classes:', data);
       }
-    } catch (err: any) {
-      setError('Error connecting to server');
-      console.error('Fetch classes error:', err);
+    } catch (err) {
+      console.error('Fetch error:', err);
+      setError('Failed to connect to server');
     } finally {
       setLoading(false);
     }
@@ -65,13 +64,13 @@ export default function ClassManagement() {
     fetchClasses();
   }, []);
 
-  // Handle adding a new class
+  // Add new class
   const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    if (!formData.class_name.trim()) {
+    if (!formData.name.trim()) {  // Changed from class_name to name
       setError('Class name is required');
       return;
     }
@@ -85,38 +84,38 @@ export default function ClassManagement() {
       });
 
       const data = await response.json();
-
+      
       if (response.ok) {
         setSuccess('Class added successfully!');
-        setFormData({ class_name: '', description: '' });
+        setFormData({ name: '', description: '' });  // Changed from class_name to name
         setShowForm(false);
         fetchClasses();
         toast({
           title: "Success",
-          description: "Class added successfully",
+          description: "Class added successfully!",
         });
       } else {
         setError(data.message || 'Failed to add class');
       }
-    } catch (err: any) {
-      setError('Error connecting to server');
+    } catch (err) {
+      setError('Failed to add class');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle updating a class
+  // Update existing class
   const handleUpdateClass = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingClass) return;
-
     setError('');
     setSuccess('');
 
-    if (!formData.class_name.trim()) {
+    if (!formData.name.trim()) {  // Changed from class_name to name
       setError('Class name is required');
       return;
     }
+
+    if (!editingClass) return;
 
     setLoading(true);
     try {
@@ -127,38 +126,32 @@ export default function ClassManagement() {
       });
 
       const data = await response.json();
-
+      
       if (response.ok) {
         setSuccess('Class updated successfully!');
         setEditingClass(null);
-        setFormData({ class_name: '', description: '' });
+        setFormData({ name: '', description: '' });  // Changed from class_name to name
         setShowForm(false);
-        
-        // Force a fresh fetch of classes to ensure UI is updated
-        await fetchClasses();
-        
+        fetchClasses();
         toast({
           title: "Success",
-          description: "Class updated successfully",
+          description: "Class updated successfully!",
         });
       } else {
         setError(data.message || 'Failed to update class');
-        toast({
-          title: "Error",
-          description: data.message || 'Failed to update class',
-          variant: "destructive"
-        });
       }
-    } catch (err: any) {
-      setError('Error connecting to server');
+    } catch (err) {
+      setError('Failed to update class');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle deleting a class
+  // Delete class
   const handleDeleteClass = async (id: number, className: string) => {
-    if (!confirm(`Are you sure you want to delete "${className}"? This action cannot be undone.`)) return;
+    if (!confirm(`Are you sure you want to delete "${className}"?`)) {
+      return;
+    }
 
     setLoading(true);
     try {
@@ -167,19 +160,19 @@ export default function ClassManagement() {
       });
 
       const data = await response.json();
-
+      
       if (response.ok) {
         setSuccess('Class deleted successfully!');
         fetchClasses();
         toast({
           title: "Success",
-          description: "Class deleted successfully",
+          description: "Class deleted successfully!",
         });
       } else {
         setError(data.message || 'Failed to delete class');
       }
-    } catch (err: any) {
-      setError('Error connecting to server');
+    } catch (err) {
+      setError('Failed to delete class');
     } finally {
       setLoading(false);
     }
@@ -189,7 +182,7 @@ export default function ClassManagement() {
   const startEdit = (classItem: Class) => {
     setEditingClass(classItem);
     setFormData({
-      class_name: classItem.class_name,
+      name: classItem.name,  // Changed from class_name to name
       description: classItem.description || ''
     });
     setShowForm(true);
@@ -200,7 +193,7 @@ export default function ClassManagement() {
   // Cancel editing
   const cancelEdit = () => {
     setEditingClass(null);
-    setFormData({ class_name: '', description: '' });
+    setFormData({ name: '', description: '' });  // Changed from class_name to name
     setShowForm(false);
     setError('');
     setSuccess('');
@@ -209,7 +202,7 @@ export default function ClassManagement() {
   // Start adding new class
   const startAdd = () => {
     setEditingClass(null);
-    setFormData({ class_name: '', description: '' });
+    setFormData({ name: '', description: '' });  // Changed from class_name to name
     setShowForm(true);
     setError('');
     setSuccess('');
@@ -218,52 +211,44 @@ export default function ClassManagement() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-6 h-6 text-primary" />
-          <h2 className="text-2xl font-bold">Class Management</h2>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Class Management</h2>
+          <p className="text-muted-foreground">
+            Manage your school classes and their details
+          </p>
         </div>
         <Button onClick={startAdd} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          Add New Class
+          <Plus className="h-4 w-4" />
+          Add Class
         </Button>
       </div>
 
       {/* Add/Edit Form */}
       {showForm && (
-        <Card className="border-2">
+        <Card>
           <CardHeader>
-            <CardTitle>{editingClass ? 'Edit Class' : 'Add New Class'}</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5" />
+              {editingClass ? 'Edit Class' : 'Add New Class'}
+            </CardTitle>
             <CardDescription>
-              {editingClass ? 'Update class information' : 'Create a new class'}
+              {editingClass ? 'Update the class information below' : 'Enter the details for the new class'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            
-            {success && (
-              <Alert className="mb-4 border-green-200 bg-green-50">
-                <AlertCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800">{success}</AlertDescription>
-              </Alert>
-            )}
-
             <form onSubmit={editingClass ? handleUpdateClass : handleAddClass} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="class_name">Class Name *</Label>
+                <Label htmlFor="name">Class Name *</Label>  {/* Changed from class_name to name */}
                 <Input
-                  id="class_name"
+                  id="name"  {/* Changed from class_name to name */}
+                  type="text"
                   placeholder="Enter class name (e.g., Grade 10A, Mathematics 101)"
-                  value={formData.class_name}
-                  onChange={(e) => setFormData({ ...formData, class_name: e.target.value })}
+                  value={formData.name}  {/* Changed from class_name to name */}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}  {/* Changed from class_name to name */}
                   required
                 />
               </div>
-
+              
               <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -276,10 +261,10 @@ export default function ClassManagement() {
               </div>
 
               <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={loading}>
-                  {loading ? 'Processing...' : editingClass ? '✓ Update Class' : '+ Add Class'}
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : (editingClass ? 'Update Class' : 'Add Class')}
                 </Button>
-                <Button type="button" variant="outline" onClick={cancelEdit} disabled={loading}>
+                <Button type="button" variant="outline" onClick={cancelEdit}>
                   Cancel
                 </Button>
               </div>
@@ -288,71 +273,82 @@ export default function ClassManagement() {
         </Card>
       )}
 
-      {/* Classes List */}
-      <Card className="border-2">
+      {/* Error/Success Messages */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      {success && (
+        <Alert>
+          <AlertDescription className="text-green-600">{success}</AlertDescription>
+        </Alert>
+      )}
+
+      {/* Classes Table */}
+      <Card>
         <CardHeader>
-          <CardTitle>All Classes</CardTitle>
+          <CardTitle>Existing Classes</CardTitle>
           <CardDescription>
-            Manage your classes ({classes.length} classes)
+            {classes.length} class{classes.length !== 1 ? 'es' : ''} total
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading && <p className="text-center text-muted-foreground">Loading...</p>}
-
-          <div className="rounded-lg border overflow-x-auto">
+          {loading ? (
+            <div className="text-center py-4">Loading classes...</div>
+          ) : classes.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No classes found</p>
+              <p className="text-sm">Click "Add Class" to create your first class</p>
+            </div>
+          ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Class Name</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead>Created Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {classes.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                      No classes found. Click "Add New Class" to get started.
+                {classes.map((classItem) => (
+                  <TableRow key={classItem.id}>
+                    <TableCell className="font-mono text-sm">{classItem.id}</TableCell>
+                    <TableCell className="font-medium">{classItem.name}</TableCell>  {/* Changed from class_name to name */}
+                    <TableCell>{classItem.description || '-'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(classItem.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEdit(classItem)}
+                          disabled={loading}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDeleteClass(classItem.id, classItem.name)}  {/* Changed from class_name to name */}
+                          disabled={loading}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  classes.map((classItem) => (
-                    <TableRow key={classItem.id}>
-                      <TableCell className="font-mono text-sm">{classItem.id}</TableCell>
-                      <TableCell className="font-medium">{classItem.class_name}</TableCell>
-                      <TableCell>{classItem.description || '-'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(classItem.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => startEdit(classItem)}
-                            disabled={loading}
-                          >
-                            <Pencil className="w-4 h-4 mr-1" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteClass(classItem.id, classItem.class_name)}
-                            disabled={loading}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ))}
               </TableBody>
             </Table>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -105,7 +105,7 @@ export default function StudentManagement() {
     const uniqueClasses = Array.from(new Set(students.map(s => s.class))).filter(Boolean).sort();
     return uniqueClasses.map(className => ({
       id: className, // Use class name as ID
-      class_name: className,
+      name: className,
       student_count: students.filter(s => s.class === className).length
     }));
   };
@@ -425,7 +425,7 @@ export default function StudentManagement() {
 
     // Check if class already exists
     const existingClasses = getClassesFromStudents();
-    if (existingClasses.some(c => c.class_name.toLowerCase() === newClassName.trim().toLowerCase())) {
+    if (existingClasses.some(c => c.name.toLowerCase() === newClassName.trim().toLowerCase())) {
       setClassError('Class already exists');
       return;
     }
@@ -441,7 +441,7 @@ export default function StudentManagement() {
   // Start editing a class
   const startEditClass = (classItem: any) => {
     setEditingClass(classItem);
-    setEditClassName(classItem.class_name);
+    setEditClassName(classItem.name);
     setClassError('');
     setClassSuccess('');
   };
@@ -467,12 +467,12 @@ export default function StudentManagement() {
       return;
     }
 
-    const oldClassName = editingClass.class_name;
+    const oldClassName = editingClass.name;
     const newClassName = editClassName.trim();
 
     // Check if new class name already exists
     const existingClasses = getClassesFromStudents();
-    if (existingClasses.some(c => c.class_name.toLowerCase() === newClassName.toLowerCase() && c.class_name !== oldClassName)) {
+    if (existingClasses.some(c => c.name.toLowerCase() === newClassName.toLowerCase() && c.name !== oldClassName)) {
       setClassError('Class name already exists');
       return;
     }
@@ -807,7 +807,7 @@ export default function StudentManagement() {
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        ✏️ Editing: {editingClass.class_name}
+                        ✏️ Editing: {editingClass.name}
                       </p>
                     </div>
 
@@ -879,9 +879,9 @@ export default function StudentManagement() {
                 ) : (
                   <div className="grid gap-4">
                     {classesData.map((classItem) => (
-                      <div key={classItem.class_name} className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                      <div key={classItem.name} className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
                         <div>
-                          <h4 className="font-medium">{classItem.class_name}</h4>
+                          <h4 className="font-medium">{classItem.name}</h4>
                           <p className="text-sm text-muted-foreground">
                             {classItem.student_count} student{classItem.student_count !== 1 ? 's' : ''}
                           </p>
@@ -891,7 +891,7 @@ export default function StudentManagement() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              setSelectedClass(classItem.class_name);
+                              setSelectedClass(classItem.name);
                               setActiveTab('manage');
                             }}
                           >
@@ -908,7 +908,7 @@ export default function StudentManagement() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteClass(classItem.class_name)}
+                            onClick={() => handleDeleteClass(classItem.name)}
                             disabled={loading || !currentUser?.can_delete_student}
                           >
                             <Trash2 className="w-4 h-4" />
