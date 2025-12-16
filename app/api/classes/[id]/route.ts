@@ -8,9 +8,9 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { class_name, description } = await request.json();
+    const { name, description } = await request.json();
 
-    if (!class_name || !class_name.trim()) {
+    if (!name || !name.trim()) {
       return NextResponse.json(
         { success: false, message: 'Class name is required' },
         { status: 400 }
@@ -18,7 +18,7 @@ export async function PUT(
     }
 
     // Check if class exists
-    const [existing]: any = await db.query('SELECT class_name FROM classes WHERE id = ?', [id]);
+    const [existing]: any = await db.query('SELECT name FROM classes WHERE id = ?', [id]);
 
     if (existing.length === 0) {
       return NextResponse.json(
@@ -27,12 +27,12 @@ export async function PUT(
       );
     }
 
-    const oldClassName = existing[0].class_name;
+    const oldClassName = existing[0].name;
 
     // Check if new class name already exists (excluding current class)
     const [duplicate]: any = await db.query(
-      'SELECT id FROM classes WHERE class_name = ? AND id != ?',
-      [class_name.trim(), id]
+      'SELECT id FROM classes WHERE name = ? AND id != ?',
+      [name.trim(), id]
     );
 
     if (duplicate.length > 0) {
@@ -44,8 +44,8 @@ export async function PUT(
 
     // Update class
     const [updateResult] = await db.query(
-      'UPDATE classes SET class_name = ?, description = ? WHERE id = ?',
-      [class_name.trim(), description || null, id]
+      'UPDATE classes SET name = ?, description = ? WHERE id = ?',
+      [name.trim(), description || null, id]
     );
 
     console.log('Class update result:', updateResult);
@@ -53,14 +53,14 @@ export async function PUT(
     // Update students table to reflect new class name
     const [studentUpdateResult] = await db.query(
       'UPDATE students SET class = ? WHERE class = ?',
-      [class_name.trim(), oldClassName]
+      [name.trim(), oldClassName]
     );
 
     console.log('Student class update result:', studentUpdateResult);
 
     // Verify the update was successful
     const [verifyResult]: any = await db.query(
-      'SELECT class_name, description FROM classes WHERE id = ?',
+      'SELECT name, description FROM classes WHERE id = ?',
       [id]
     );
 
@@ -72,7 +72,7 @@ export async function PUT(
       message: 'Class updated successfully',
       data: {
         id: parseInt(id),
-        class_name: updatedClass.class_name,
+        name: updatedClass.name,
         description: updatedClass.description
       }
     });
@@ -94,7 +94,7 @@ export async function DELETE(
     const { id } = await params;
 
     // Check if class exists
-    const [classData]: any = await db.query('SELECT class_name FROM classes WHERE id = ?', [id]);
+    const [classData]: any = await db.query('SELECT name FROM classes WHERE id = ?', [id]);
 
     if (classData.length === 0) {
       return NextResponse.json(
@@ -103,7 +103,7 @@ export async function DELETE(
       );
     }
 
-    const className = classData[0].class_name;
+    const className = classData[0].name;
 
     // Check if there are students in this class
     const [students]: any = await db.query('SELECT COUNT(*) as count FROM students WHERE class = ?', [className]);

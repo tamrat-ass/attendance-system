@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 export async function GET() {
   try {
     const [rows]: any = await db.query(
-      'SELECT id, class_name, description, created_at FROM classes ORDER BY class_name ASC'
+      'SELECT id, name, description, created_at FROM classes ORDER BY name ASC'
     );
 
     return NextResponse.json({
@@ -24,9 +24,9 @@ export async function GET() {
 // POST - Create new class
 export async function POST(request: NextRequest) {
   try {
-    const { class_name, description } = await request.json();
+    const { name, description } = await request.json();
 
-    if (!class_name || !class_name.trim()) {
+    if (!name || !name.trim()) {
       return NextResponse.json(
         { success: false, message: 'Class name is required' },
         { status: 400 }
@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
 
     // Check if class already exists
     const [existing]: any = await db.query(
-      'SELECT id FROM classes WHERE class_name = ?',
-      [class_name.trim()]
+      'SELECT id FROM classes WHERE name = ?',
+      [name.trim()]
     );
 
     if (existing.length > 0) {
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
 
     // Insert new class
     const [result] = await db.query(
-      'INSERT INTO classes (class_name, description) VALUES (?, ?)',
-      [class_name.trim(), description || null]
+      'INSERT INTO classes (name, description) VALUES (?, ?)',
+      [name.trim(), description || null]
     );
 
     return NextResponse.json({
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       message: 'Class created successfully',
       data: {
         id: (result as any).insertId,
-        class_name: class_name.trim(),
+        name: name.trim(),
         description: description || null
       }
     });
