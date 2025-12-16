@@ -715,9 +715,9 @@ export default function StudentManagement() {
                           <SelectValue placeholder="Select class or create new" />
                         </SelectTrigger>
                         <SelectContent>
-                          {uniqueClasses.map((className) => (
-                            <SelectItem key={className} value={className}>
-                              {className}
+                          {availableClasses.map((classItem) => (
+                            <SelectItem key={classItem.name} value={classItem.name}>
+                              {classItem.name}
                             </SelectItem>
                           ))}
                           <SelectItem value="__custom__">✏️ Type New Class Name</SelectItem>
@@ -735,7 +735,7 @@ export default function StudentManagement() {
                     </div>
                   ) : (
                     // When adding new: only dropdown (prevents duplicates)
-                    uniqueClasses.length > 0 ? (
+                    availableClasses.length > 0 ? (
                       <Select
                         value={formData.class}
                         onValueChange={(value) => setFormData({ ...formData, class: value })}
@@ -745,9 +745,9 @@ export default function StudentManagement() {
                           <SelectValue placeholder="Select a class" />
                         </SelectTrigger>
                         <SelectContent>
-                          {uniqueClasses.map((className) => (
-                            <SelectItem key={className} value={className}>
-                              {className} ({students.filter(s => s.class === className).length} students)
+                          {availableClasses.map((classItem) => (
+                            <SelectItem key={classItem.name} value={classItem.name}>
+                              {classItem.name} ({classItem.student_count} students)
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -1084,9 +1084,9 @@ export default function StudentManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Classes ({students.length})</SelectItem>
-                      {uniqueClasses.map((className) => (
-                        <SelectItem key={className} value={className}>
-                          {className} ({students.filter(s => s.class === className).length})
+                      {availableClasses.map((classItem) => (
+                        <SelectItem key={classItem.name} value={classItem.name}>
+                          {classItem.name} ({classItem.student_count})
                         </SelectItem>
                       ))}
                     </SelectContent>
