@@ -364,7 +364,7 @@ export default function StudentManagement() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'students_template.csv';
+    a.download = `students_template_${Date.now()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -387,9 +387,33 @@ export default function StudentManagement() {
     }
 
     const reader = new FileReader();
+    reader.readAsText(bulkFile, 'UTF-8'); // Ensure UTF-8 encoding for Amharic
     reader.onload = async (event) => {
       try {
         const text = event.target?.result as string;
+        console.log('CSV file content:', text); // Debug log
+        
+        // Parse CSV properly handling quoted fields (for Amharic text)
+        const parseCSVLine = (line: string): string[] => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        };
+
         const lines = text.split('\n').filter(line => line.trim());
         
         if (lines.length < 2) {
@@ -397,7 +421,9 @@ export default function StudentManagement() {
           return;
         }
 
-        const headers = lines[0].split(',').map(h => h.trim());
+        const headers = parseCSVLine(lines[0]).map(h => h.replace(/"/g, '').trim());
+        console.log('CSV headers:', headers); // Debug log
+        
         if (!headers.includes('full_name') || !headers.includes('phone') || !headers.includes('gender') || !headers.includes('class')) {
           setBulkError('CSV must have columns: full_name, phone, gender, class');
           return;
@@ -405,12 +431,14 @@ export default function StudentManagement() {
 
         const studentsToAdd = [];
         for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.trim());
-          if (values.length >= 4) {
+          const values = parseCSVLine(lines[i]).map(v => v.replace(/"/g, '').trim());
+          console.log('Parsed student data:', values); // Debug log
+          
+          if (values.length >= 4 && values[0] && values[1]) {
             studentsToAdd.push({
               full_name: values[0],
               phone: values[1],
-              gender: values[2],
+              gender: values[2] || 'male',
               class: values[3]
             });
           }
@@ -455,8 +483,6 @@ export default function StudentManagement() {
         setLoading(false);
       }
     };
-
-    reader.readAsText(bulkFile);
   };
 
   // Handle adding a new class (simple approach)
