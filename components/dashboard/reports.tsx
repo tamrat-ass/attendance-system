@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Download, X } from 'lucide-react';
+import { Download, X, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   getCurrentSimpleEthiopianDate, 
@@ -14,6 +14,7 @@ import {
   formatSimpleEthiopianDate 
 } from '@/lib/simple-ethiopian-date';
 import ReportsDebug from './reports-debug';
+import * as XLSX from 'xlsx';
 
 interface Student {
   id: number;
@@ -61,8 +62,8 @@ export default function Reports() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch students
-      const studentsRes = await fetch('/api/students?limit=10000'); // Increase limit to get all students
+      // Fetch students - get ALL students without limit
+      const studentsRes = await fetch('/api/students?limit=99999');
       const studentsData = await studentsRes.json();
       
       // Fetch attendance with date range
@@ -119,20 +120,7 @@ export default function Reports() {
       endDate
     });
     
-    if (attendance.length === 0) {
-      return {
-        totalRecords: 0,
-        presentCount: 0,
-        absentCount: 0,
-        lateCount: 0,
-        permissionCount: 0,
-        dateChartData: [],
-        pieData: [],
-        studentStats: [],
-        classStats: []
-      };
-    }
-
+    // Always calculate stats for all students, even if no attendance data
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const absentCount = attendance.filter(a => a.status === 'absent').length;
     const lateCount = attendance.filter(a => a.status === 'late').length;
@@ -168,7 +156,7 @@ export default function Reports() {
       { name: 'Permission', value: permissionCount }
     ];
 
-    // Calculate student stats
+    // Calculate student stats - INCLUDE ALL STUDENTS, even those with no attendance
     const byClass: { [key: string]: { [key: string]: number } } = {};
     const studentStats = students.map(student => {
       const records = attendance.filter(a => a.student_id === student.id);
@@ -194,7 +182,7 @@ export default function Reports() {
         permission,
         attendanceRate: parseFloat(attendanceRate)
       };
-    }).filter(s => s.total > 0); // Only show students with attendance records
+    }); // REMOVED FILTER - Show ALL students, including those with 0 attendance
 
     const classStats = Object.entries(byClass).map(([className, stats]) => ({
       class: className,
@@ -202,7 +190,8 @@ export default function Reports() {
     }));
 
     return {
-      totalRecords: studentStats.length, // Count of students with attendance records
+      totalRecords: students.length, // FIXED: Total number of students in system
+      totalStudentsWithAttendance: studentStats.filter(s => s.total > 0).length, // Students with attendance records
       presentCount,
       absentCount,
       lateCount,
@@ -216,6 +205,160 @@ export default function Reports() {
 
 
 
+  const handleExportExcel = () => {
+    if (stats.studentStats.length === 0) {
+      toast({
+        title: "No data",
+        description: "No attendance data to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Calculate total study days in the date range
+      const startEthDate = dbFormatToSimpleEthiopian(startDate);
+      const endEthDate = dbFormatToSimpleEthiopian(endDate);
+      
+      // Simple calculation of days between dates (Ethiopian calendar)
+      const totalStudyDays = Math.abs(
+        (endEthDate.year * 365 + endEthDate.month * 30 + endEthDate.day) - 
+        (startEthDate.year * 365 + startEthDate.month * 30 + startEthDate.day)
+      ) + 1;
+
+      const startEthDateFormatted = formatSimpleEthiopianDate(startEthDate, true);
+      const endEthDateFormatted = formatSimpleEthiopianDate(endEthDate, true);
+      
+      // Create the report data with exact Amharic column names as requested
+      const reportData = [
+        // Title rows
+        [`የማህበረ ቅዱሳን የመዝሙር ክፍል የአባላይ መከታተያ`],
+        [`Attendance Report (${startEthDateFormatted} to ${endEthDateFormatted})`],
+        [], // Empty row
+        // Header row with exact columns as requested
+        [
+          'የአባላቱ መለያ',
+          'ሙሉ ስም', 
+          'የሚያገለግሉበት ክፍል',
+          'ስልክ',
+          'ጠቅላላ የጥናት ቀናት',
+          'የተኘበት ቀን',
+          'የቀረበት ቀን', 
+          'ዘግይቶ የመጣበት',
+          'ፈቃድ የተጠየቀበት',
+          'ጠቅላላ የተገኙበት ቀናት',
+          'የመጣበት መጠን በ%'
+        ]
+      ];
+
+      // Add student data rows
+      stats.studentStats.forEach(student => {
+        const totalAttendedDays = student.present + student.permission;
+        reportData.push([
+          student.id.toString(),
+          student.full_name,
+          student.class,
+          student.phone,
+          totalStudyDays.toString(),
+          student.absent.toString(),
+          student.present.toString(),
+          student.late.toString(),
+          student.permission.toString(),
+          totalAttendedDays.toString(),
+          `${student.attendanceRate}%`
+        ]);
+      });
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(reportData);
+      
+      // Set column widths for better readability
+      worksheet['!cols'] = [
+        { width: 12 }, // የአባላቱ መለያ
+        { width: 25 }, // ሙሉ ስም
+        { width: 20 }, // የሚያገለግሉበት ክፍል
+        { width: 15 }, // ስልክ
+        { width: 18 }, // ጠቅላላ የጥናት ቀናት
+        { width: 15 }, // የተኘበት ቀን
+        { width: 15 }, // የቀረበት ቀን
+        { width: 18 }, // ዘግይቶ የመጣበት
+        { width: 20 }, // ፈቃድ የተጠየቀበት
+        { width: 22 }, // ጠቅላላ የተገኙበት ቀናት
+        { width: 18 }  // የመጣበት መጠን በ%
+      ];
+      
+      // Style the title rows
+      const titleStyle = {
+        font: { bold: true, size: 14, color: { rgb: "000080" } },
+        alignment: { horizontal: "center" }
+      };
+      
+      // Style the header row
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "366092" } },
+        alignment: { horizontal: "center" },
+        border: {
+          top: { style: "thin" },
+          bottom: { style: "thin" },
+          left: { style: "thin" },
+          right: { style: "thin" }
+        }
+      };
+      
+      // Apply title styling
+      if (worksheet['A1']) worksheet['A1'].s = titleStyle;
+      if (worksheet['A2']) worksheet['A2'].s = titleStyle;
+      
+      // Apply header styling (row 4)
+      const headerRow = 4;
+      for (let col = 0; col < 11; col++) {
+        const cellAddress = XLSX.utils.encode_cell({ r: headerRow - 1, c: col });
+        if (worksheet[cellAddress]) {
+          worksheet[cellAddress].s = headerStyle;
+        }
+      }
+      
+      // Merge title cells
+      worksheet['!merges'] = [
+        { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } }, // Title row
+        { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }  // Subtitle row
+      ];
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'የአባላይ መከታተያ');
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      // Download file
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `የአባላይ-መከታተያ-${startEthDateFormatted}-to-${endEthDateFormatted}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Success",
+        description: "የአባላይ መከታተያ ሪፖርት በተሳካ ሁኔታ ወርዷል (Excel report exported successfully)",
+      });
+    } catch (error) {
+      console.error('Excel export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to create Excel report. Try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleExportReport = () => {
     if (stats.studentStats.length === 0) {
       toast({
@@ -226,31 +369,46 @@ export default function Reports() {
       return;
     }
 
+    // Calculate total study days in the date range
+    const startEthDate = dbFormatToSimpleEthiopian(startDate);
+    const endEthDate = dbFormatToSimpleEthiopian(endDate);
+    
+    // Simple calculation of days between dates (Ethiopian calendar)
+    const totalStudyDays = Math.abs(
+      (endEthDate.year * 365 + endEthDate.month * 30 + endEthDate.day) - 
+      (startEthDate.year * 365 + startEthDate.month * 30 + startEthDate.day)
+    ) + 1;
+
     const data = stats.studentStats.map(student => {
       // Calculate Total Attended Days (Present + Permission)
       const totalAttendedDays = student.present + student.permission;
       
       return {
-        'የተማሪ መለያ': student.id,
-        'ስም': student.full_name,
-        'ክፍል': student.class,
+        'የአባላቱ መለያ': student.id,
+        'ሙሉ ስም': student.full_name,
+        'የሚያገለግሉበት ክፍል': student.class,
         'ስልክ': student.phone,
-        'ጠቅላላ ቀናት': student.total,
-        'ተገኝቷል': student.present,
-        'ተቀምጧል': student.absent,
-        'ዘግይቷል': student.late,
-        'ፈቃድ': student.permission,
-        'ጠቅላላ የተገኙ ቀናት': totalAttendedDays,
-        'የመገኘት መጠን': `${student.attendanceRate}%`
+        'ጠቅላላ የጥናት ቀናት': totalStudyDays,
+        'የተኘበት ቀን': student.absent,
+        'የቀረበት ቀን': student.present,
+        'ዘግይቶ የመጣበት': student.late,
+        'ፈቃድ የተጠየቀበት': student.permission,
+        'ጠቅላላ የተገኙበት ቀናት': totalAttendedDays,
+        'የመጣበት መጠን በ%': `${student.attendanceRate}%`
       };
     });
 
     const headers = Object.keys(data[0]);
-    const startEthDate = formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(startDate), true);
-    const endEthDate = formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(endDate), true);
+    const startEthDateFormatted = formatSimpleEthiopianDate(startEthDate, true);
+    const endEthDateFormatted = formatSimpleEthiopianDate(endEthDate, true);
+    
+    // Create the report with proper Amharic header
+    const reportTitle = `የማህበረ ቅዱሳን የመዝሙር ክፍል የአባላይ መከታተያ`;
+    const reportSubtitle = `Attendance Report (${startEthDateFormatted} to ${endEthDateFormatted})`;
     
     const csv = [
-      `Attendance Report (${startEthDate} to ${endEthDate})`,
+      reportTitle,
+      reportSubtitle,
       '',
       headers.join(','),
       ...data.map(row => 
@@ -264,12 +422,12 @@ export default function Reports() {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `attendance-report-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `የአባላይ-መከታተያ-${startEthDateFormatted}-to-${endEthDateFormatted}.csv`;
     a.click();
 
     toast({
       title: "Success",
-      description: "Report exported successfully"
+      description: "የአባላይ መከታተያ ሪፖርት በተሳካ ሁኔታ ወርዷል (Report exported successfully)",
     });
   };
 
@@ -402,9 +560,13 @@ export default function Reports() {
               >
                 🔄 Refresh
               </Button>
-              <Button onClick={handleExportReport} className="flex items-center gap-2" disabled={loading}>
+              <Button onClick={handleExportExcel} className="flex items-center gap-2" disabled={loading}>
+                <FileSpreadsheet className="w-4 h-4" />
+                Export Excel
+              </Button>
+              <Button onClick={handleExportReport} variant="outline" className="flex items-center gap-2" disabled={loading}>
                 <Download className="w-4 h-4" />
-                Export Report
+                Export CSV
               </Button>
             </div>
           </div>
@@ -432,10 +594,13 @@ export default function Reports() {
             <Card className="border-2 bg-yellow-50">
               <CardContent className="py-4">
                 <div className="text-sm text-yellow-800">
-                  <strong>Debug Info:</strong> Students: {students.length}, Attendance: {attendance.length}, 
-                  Date Range (Ethiopian): {startDate} to {endDate}
+                  <strong>Debug Info:</strong> Total Students: {students.length}, Students with Attendance: {stats.totalStudentsWithAttendance}, Attendance Records: {attendance.length}
+                  <br />
+                  <strong>Date Range (Ethiopian):</strong> {startDate} to {endDate}
                   <br />
                   <strong>Ethiopian Display:</strong> {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(startDate), true)} to {formatSimpleEthiopianDate(dbFormatToSimpleEthiopian(endDate), true)}
+                  <br />
+                  <strong>Statistics:</strong> Present: {stats.presentCount}, Absent: {stats.absentCount}, Late: {stats.lateCount}, Permission: {stats.permissionCount}
                 </div>
               </CardContent>
             </Card>
@@ -451,6 +616,7 @@ export default function Reports() {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-foreground">{stats.totalRecords}</div>
                   <p className="text-xs text-muted-foreground mt-2">Total Students</p>
+                  <p className="text-xs text-muted-foreground">({stats.totalStudentsWithAttendance} with attendance)</p>
                 </div>
               </CardContent>
             </Card>
@@ -600,11 +766,11 @@ export default function Reports() {
           ) : (
             <Card className="border-2">
               <CardContent className="py-12 text-center text-muted-foreground">
-                📊 No students found with attendance records for the selected date range.
+                📊 All {students.length} students are shown below.
                 <br />
                 <span className="text-sm">
-                  Total students in system: {students.length} | 
-                  Attendance records found: {attendance.length}
+                  Students with attendance in date range: {stats.totalStudentsWithAttendance} | 
+                  Total attendance records: {attendance.length}
                 </span>
               </CardContent>
             </Card>
