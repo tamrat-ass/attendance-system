@@ -773,7 +773,7 @@ export default function StudentManagement() {
                   <Button 
                     type="submit" 
                     className="flex-1" 
-                    disabled={loading || (!editingStudent && !currentUser?.can_add_student) || (editingStudent && !currentUser?.can_update_student) || false}
+                    disabled={loading || (!editingStudent && !currentUser?.can_add_student) || (editingStudent && !currentUser?.can_update_student && !currentUser?.can_add_student) || false}
                   >
                     {loading ? 'Processing...' : editingStudent ? '✓ Update Student' : '+ Add Student'}
                   </Button>
@@ -1144,8 +1144,12 @@ export default function StudentManagement() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => startEdit(student)}
-                                disabled={loading || !currentUser?.can_update_student}
+                                onClick={() => {
+                                  console.log('Edit button clicked for student:', student);
+                                  console.log('Current user permissions:', currentUser);
+                                  startEdit(student);
+                                }}
+                                disabled={loading || (!currentUser?.can_update_student && !currentUser?.can_add_student)}
                               >
                                 <Pencil className="w-4 h-4 mr-1" />
                                 Edit
