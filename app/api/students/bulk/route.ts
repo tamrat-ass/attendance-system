@@ -15,42 +15,67 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate all students
+    // Comprehensive validation of all students
+    const validationErrors: string[] = [];
+    
     for (let i = 0; i < students.length; i++) {
       const student = students[i];
-      if (!student.full_name || !student.phone || !student.gender || !student.class) {
-        return NextResponse.json(
-          { success: false, message: 'All students must have full_name, phone, gender, and class' },
-          { status: 400 }
-        );
+      const rowNum = i + 1;
+      
+      // Check required fields
+      if (!student.full_name || student.full_name.trim() === '') {
+        validationErrors.push(`Row ${rowNum}: Missing full name`);
       }
-
-      // Validate phone number format (exactly 10 digits starting with 09)
-      if (!/^09\d{8}$/.test(student.phone)) {
-        return NextResponse.json(
-          { success: false, message: `Row ${i + 1}: Phone number "${student.phone}" must be exactly 10 digits and start with 09` },
-          { status: 400 }
-        );
+      if (!student.phone || student.phone.trim() === '') {
+        validationErrors.push(`Row ${rowNum}: Missing phone number`);
+      }
+      if (!student.class || student.class.trim() === '') {
+        validationErrors.push(`Row ${rowNum}: Missing class`);
       }
       
-      // Validate gender
-      if (!['Male', 'Female'].includes(student.gender)) {
-        return NextResponse.json(
-          { success: false, message: `Row ${i + 1}: Gender must be either "Male" or "Female"` },
-          { status: 400 }
-        );
+      // Validate phone number format (exactly 10 digits starting with 09)
+      if (student.phone && !/^09\d{8}$/.test(student.phone.trim())) {
+        validationErrors.push(`Row ${rowNum}: Invalid phone "${student.phone}" (must be 09xxxxxxxx)`);
+      }
+      
+      // Validate gender (allow flexible input)
+      if (student.gender && !['Male', 'Female', 'male', 'female', 'M', 'F', 'm', 'f'].includes(student.gender)) {
+        validationErrors.push(`Row ${rowNum}: Invalid gender "${student.gender}" (must be Male or Female)`);
+      }
+      
+      // Validate name length
+      if (student.full_name && student.full_name.trim().length < 2) {
+        validationErrors.push(`Row ${rowNum}: Full name too short (minimum 2 characters)`);
+      }
+      
+      // Validate class name
+      if (student.class && student.class.trim().length < 1) {
+        validationErrors.push(`Row ${rowNum}: Class name too short`);
       }
     }
-
-    const connection = await db.getConnection();
     
+    // Return validation errors if any
+    if (validationErrors.length > 0) {
+      const errorMessage = `Validation failed for ${validationErrors.length} row(s):\n\n${validationErrors.slice(0, 10).join('\n')}${validationErrors.length > 10 ? `\n... and ${validationErrors.length - 10} more errors` : ''}`;
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: errorMessage,
+          errors: validationErrors,
+          errorCount: validationErrors.length
+        },
+        { status: 400 }
+      );
+    }
+
     try {
       // Check existing students count BEFORE upload
-      const [beforeCount]: any = await connection.query('SELECT COUNT(*) as count FROM students');
+      const [beforeCount]: any = await db.query('SELECT COUNT(*) as count FROM students');
       console.log('Students in database BEFORE upload:', beforeCount[0].count);
 
       // Get all existing students to check for duplicates
-      const [existingStudents]: any = await connection.query(
+      const [existingStudents]: any = await db.query(
         'SELECT full_name, phone FROM students'
       );
 
@@ -62,8 +87,6 @@ export async function POST(request: NextRequest) {
       );
 
       console.log('Existing student identifiers:', Array.from(existingSet).slice(0, 5), '...');
-
-      await connection.beginTransaction();
 
       const insertedStudents = [];
       const skippedStudents = [];
@@ -85,32 +108,51 @@ export async function POST(request: NextRequest) {
         }
 
         console.log('✓ INSERTING new student:', student.full_name);
-        const [result] = await connection.query(
-          'INSERT INTO students (full_name, phone, gender, class) VALUES (?, ?, ?, ?)',
-          [student.full_name, student.phone, student.gender, student.class]
-        );
         
-        const newStudent = {
-          id: (result as any).insertId,
-          ...student
-        };
+        // Normalize gender value
+        let normalizedGender = 'Male'; // Default
+        if (student.gender) {
+          const genderLower = student.gender.toLowerCase().trim();
+          if (genderLower.includes('f') || genderLower === 'female') {
+            normalizedGender = 'Female';
+          }
+        }
         
-        insertedStudents.push(newStudent);
-        // Add to existing set to prevent duplicates within the same upload
-        existingSet.add(identifier);
+        try {
+          const [result] = await db.execute(
+            'INSERT INTO students (full_name, phone, gender, class) VALUES (?, ?, ?, ?)',
+            [student.full_name.trim(), student.phone.trim(), normalizedGender, student.class.trim()]
+          );
+          
+          const newStudent = {
+            id: (result as any).insertId || Date.now(), // Fallback ID for PostgreSQL
+            full_name: student.full_name.trim(),
+            phone: student.phone.trim(),
+            gender: normalizedGender,
+            class: student.class.trim()
+          };
+          
+          insertedStudents.push(newStudent);
+          // Add to existing set to prevent duplicates within the same upload
+          existingSet.add(identifier);
+        } catch (insertError) {
+          console.error('Error inserting student:', student.full_name, insertError);
+          skippedStudents.push({
+            ...student,
+            reason: 'Database insertion failed'
+          });
+        }
       }
 
-      await connection.commit();
-
       // Check existing students count AFTER upload
-      const [afterCount]: any = await connection.query('SELECT COUNT(*) as count FROM students');
+      const [afterCount]: any = await db.query('SELECT COUNT(*) as count FROM students');
       console.log('Students in database AFTER upload:', afterCount[0].count);
       console.log('Inserted:', insertedStudents.length, 'Skipped:', skippedStudents.length);
       console.log('=== BULK UPLOAD COMPLETE ===');
 
       return NextResponse.json({
         success: true,
-        message: `Successfully added ${insertedStudents.length} students${skippedStudents.length > 0 ? `, skipped ${skippedStudents.length} duplicates` : ''}`,
+        message: `Successfully processed ${students.length} students: ${insertedStudents.length} added${skippedStudents.length > 0 ? `, ${skippedStudents.length} skipped` : ''}`,
         data: insertedStudents,
         skipped: skippedStudents,
         summary: {
@@ -120,11 +162,15 @@ export async function POST(request: NextRequest) {
         }
       });
     } catch (error: any) {
-      await connection.rollback();
-      console.error('Transaction rolled back due to error');
-      throw error;
-    } finally {
-      connection.release();
+      console.error('Bulk upload database error:', error);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: `Database error: ${error.message || 'Failed to process students'}`,
+          error: 'DATABASE_ERROR'
+        },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
     console.error('Bulk upload error:', error);

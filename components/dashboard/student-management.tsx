@@ -12,6 +12,7 @@ import { Trash2, Plus, Search, Pencil, Upload, Download, Filter } from 'lucide-r
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 interface Student {
   id: number;
@@ -358,21 +359,73 @@ export default function StudentManagement() {
 
   // Download Excel template
   const downloadTemplate = () => {
-    const BOM = '\uFEFF';
-    const csvContent = `${BOM}full_name,phone,gender,class\n"ታምራት አሜሪ","0937383899","male","አስተባበሪ"\n"Sample Student","0912345678","female","Grade 1"`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `students_template_${Date.now()}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-    toast({
-      title: "Template Downloaded",
-      description: "CSV template downloaded successfully (opens in Excel)",
-    });
+    try {
+      // Create sample data for Excel template
+      const templateData = [
+        ['full_name', 'phone', 'gender', 'class'],
+        ['ታምራት አሜሪ', '0937383899', 'Male', 'አስተባበሪ'],
+        ['Sample Student', '0912345678', 'Female', 'Grade 1'],
+        ['John Doe', '0923456789', 'Male', 'Grade 2'],
+        ['Jane Smith', '0934567890', 'Female', 'Grade 3']
+      ];
+
+      // Create workbook and worksheet
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.aoa_to_sheet(templateData);
+      
+      // Set column widths for better readability
+      worksheet['!cols'] = [
+        { width: 20 }, // full_name
+        { width: 15 }, // phone
+        { width: 10 }, // gender
+        { width: 15 }  // class
+      ];
+      
+      // Style the header row
+      const headerStyle = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "366092" } },
+        alignment: { horizontal: "center" }
+      };
+      
+      // Apply header styling
+      ['A1', 'B1', 'C1', 'D1'].forEach(cell => {
+        if (worksheet[cell]) {
+          worksheet[cell].s = headerStyle;
+        }
+      });
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Students Template');
+      
+      // Generate Excel file
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      
+      // Download file
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `students_template_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Template Downloaded",
+        description: "Excel template downloaded successfully with sample data",
+      });
+    } catch (error) {
+      console.error('Template download error:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to create Excel template. Try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle bulk upload
@@ -381,75 +434,418 @@ export default function StudentManagement() {
     setBulkError('');
     setBulkSuccess('');
 
+    // Comprehensive file validation
     if (!bulkFile) {
-      setBulkError('Please select a CSV file');
+      setBulkError('❌ Please select a file to upload');
       return;
     }
 
-    const reader = new FileReader();
-    reader.readAsText(bulkFile, 'UTF-8'); // Ensure UTF-8 encoding for Amharic
-    reader.onload = async (event) => {
-      try {
-        const text = event.target?.result as string;
-        console.log('CSV file content:', text); // Debug log
-        
-        // Parse CSV properly handling quoted fields (for Amharic text)
-        const parseCSVLine = (line: string): string[] => {
-          const result = [];
-          let current = '';
-          let inQuotes = false;
-          
-          for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') {
-              inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              result.push(current.trim());
-              current = '';
-            } else {
-              current += char;
-            }
-          }
-          result.push(current.trim());
-          return result;
-        };
+    // Check file type
+    const fileName = bulkFile.name.toLowerCase();
+    const fileExtension = fileName.split('.').pop();
+    
+    if (!fileName.endsWith('.csv') && !fileName.endsWith('.xlsx') && !fileName.endsWith('.xls')) {
+      setBulkError(`❌ Invalid file type: .${fileExtension}\n\n✅ Supported formats:\n• .xlsx (Excel file - recommended)\n• .xls (older Excel file)\n• .csv (comma-separated values)\n\n💡 Tip: Use Excel format for best compatibility with Amharic text`);
+      return;
+    }
 
-        const lines = text.split('\n').filter(line => line.trim());
-        
-        if (lines.length < 2) {
-          setBulkError('CSV file is empty or invalid');
-          return;
-        }
+    // Check file size (max 10MB for Excel, 5MB for CSV)
+    const maxSize = (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (bulkFile.size > maxSize) {
+      setBulkError(`❌ File too large: ${(bulkFile.size / 1024 / 1024).toFixed(1)}MB\n\n✅ Maximum file size: ${maxSize / 1024 / 1024}MB for ${fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ? 'Excel' : 'CSV'} files\n\n💡 Tip: Split large files into smaller batches (max 1000 students per file)`);
+      return;
+    }
 
-        const headers = parseCSVLine(lines[0]).map(h => h.replace(/"/g, '').trim());
-        console.log('CSV headers:', headers); // Debug log
-        
-        if (!headers.includes('full_name') || !headers.includes('phone') || !headers.includes('gender') || !headers.includes('class')) {
-          setBulkError('CSV must have columns: full_name, phone, gender, class');
-          return;
-        }
+    // Check if file is empty
+    if (bulkFile.size < 50) {
+      setBulkError('❌ File appears to be empty or corrupted\n\n💡 Make sure your file contains:\n• Header row (full_name, phone, gender, class)\n• At least one data row with student information');
+      return;
+    }
 
-        const studentsToAdd = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i]).map(v => v.replace(/"/g, '').trim());
-          console.log('Parsed student data:', values); // Debug log
-          
-          if (values.length >= 4 && values[0] && values[1]) {
-            studentsToAdd.push({
-              full_name: values[0],
-              phone: values[1],
-              gender: values[2] || 'male',
-              class: values[3]
-            });
-          }
-        }
+    console.log('📁 File validation passed:', {
+      name: bulkFile.name,
+      size: `${(bulkFile.size / 1024).toFixed(1)}KB`,
+      type: bulkFile.type,
+      extension: fileExtension
+    });
 
-        if (studentsToAdd.length === 0) {
-          setBulkError('No valid student data found in CSV');
-          return;
-        }
+    const isExcelFile = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+    const isCsvFile = fileName.endsWith('.csv');
 
+    try {
+      let studentsToAdd: any[] = [];
+
+      if (isExcelFile) {
+        // Handle Excel files (.xlsx, .xls)
+        console.log('📊 Processing Excel file:', bulkFile.name);
         setLoading(true);
+        
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const data = event.target?.result;
+            if (!data) {
+              setBulkError('❌ Failed to read Excel file\n\n💡 Try:\n• Re-saving the file\n• Using a different Excel file\n• Converting to CSV format');
+              setLoading(false);
+              return;
+            }
+
+            console.log('📊 Reading Excel workbook...');
+            const workbook = XLSX.read(data, { 
+              type: 'array',
+              cellDates: true,
+              cellNF: false,
+              cellText: false
+            });
+            
+            // Check if workbook has sheets
+            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+              setBulkError('❌ Excel file has no worksheets\n\n💡 Make sure your Excel file has at least one worksheet with data');
+              setLoading(false);
+              return;
+            }
+            
+            // Get first worksheet
+            const sheetName = workbook.SheetNames[0];
+            console.log('📊 Using worksheet:', sheetName);
+            
+            const worksheet = workbook.Sheets[sheetName];
+            if (!worksheet) {
+              setBulkError('❌ Cannot read worksheet data\n\n💡 Try:\n• Opening and re-saving the Excel file\n• Checking if the worksheet is protected\n• Using a different Excel file');
+              setLoading(false);
+              return;
+            }
+            
+            // Convert to JSON with proper handling
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+              header: 1,
+              defval: '',
+              blankrows: false
+            });
+            
+            console.log('📊 Excel data parsed, rows:', jsonData.length);
+            console.log('📊 First few rows:', jsonData.slice(0, 3));
+            
+            if (jsonData.length < 2) {
+              setBulkError('❌ Excel file is empty or has no data rows\n\n💡 Make sure your Excel file has:\n• Header row (full_name, phone, gender, class)\n• At least one data row with student information\n\n📋 Current rows found: ' + jsonData.length);
+              setLoading(false);
+              return;
+            }
+
+            // Validate headers
+            const headers = (jsonData[0] as string[]).map(h => h?.toString().trim().toLowerCase());
+            console.log('📊 Excel headers found:', headers);
+            
+            // Check required columns (flexible matching)
+            const requiredColumns = ['full_name', 'phone', 'gender', 'class'];
+            const headerMap: {[key: string]: number} = {};
+            
+            // Map headers to column indices
+            headers.forEach((header, index) => {
+              const cleanHeader = header.replace(/[^a-z_]/g, '');
+              if (requiredColumns.includes(cleanHeader)) {
+                headerMap[cleanHeader] = index;
+              }
+            });
+            
+            const missingColumns = requiredColumns.filter(col => !(col in headerMap));
+            
+            if (missingColumns.length > 0) {
+              setBulkError(`❌ Missing required columns: ${missingColumns.join(', ')}\n\n✅ Required columns (exact names):\n• full_name\n• phone\n• gender\n• class\n\n📋 Found headers: ${headers.join(', ')}\n\n💡 Make sure column names match exactly (case-sensitive)`);
+              setLoading(false);
+              return;
+            }
+
+            // Parse data rows with better validation
+            const studentsToAdd: any[] = [];
+            const errors: string[] = [];
+            
+            for (let i = 1; i < jsonData.length; i++) {
+              const row = jsonData[i] as any[];
+              if (!row || row.length === 0) continue; // Skip empty rows
+              
+              try {
+                const studentData = {
+                  full_name: (row[headerMap.full_name] || '').toString().trim(),
+                  phone: (row[headerMap.phone] || '').toString().trim(),
+                  gender: (row[headerMap.gender] || 'male').toString().trim(),
+                  class: (row[headerMap.class] || '').toString().trim()
+                };
+                
+                // Validate required fields
+                if (!studentData.full_name) {
+                  errors.push(`Row ${i + 1}: Missing full name`);
+                  continue;
+                }
+                if (!studentData.phone) {
+                  errors.push(`Row ${i + 1}: Missing phone number`);
+                  continue;
+                }
+                if (!studentData.class) {
+                  errors.push(`Row ${i + 1}: Missing class`);
+                  continue;
+                }
+                
+                // Clean phone number (remove spaces, dashes, etc.)
+                studentData.phone = studentData.phone.replace(/[\s\-\(\)]/g, '');
+                
+                // Validate phone format
+                if (!/^09\d{8}$/.test(studentData.phone)) {
+                  errors.push(`Row ${i + 1}: Invalid phone "${studentData.phone}" (must be 09xxxxxxxx)`);
+                  continue;
+                }
+                
+                // Normalize gender
+                const genderLower = studentData.gender.toLowerCase();
+                if (genderLower.includes('m') || genderLower === 'male') {
+                  studentData.gender = 'Male';
+                } else if (genderLower.includes('f') || genderLower === 'female') {
+                  studentData.gender = 'Female';
+                } else {
+                  studentData.gender = 'Male'; // Default
+                }
+                
+                studentsToAdd.push(studentData);
+                
+              } catch (rowError) {
+                errors.push(`Row ${i + 1}: Error processing data - ${rowError}`);
+              }
+            }
+            
+            // Check for validation errors
+            if (errors.length > 0) {
+              const errorMessage = `❌ Found ${errors.length} error(s) in Excel file:\n\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? `\n... and ${errors.length - 5} more errors` : ''}\n\n💡 Please fix these issues and try again`;
+              setBulkError(errorMessage);
+              setLoading(false);
+              return;
+            }
+            
+            if (studentsToAdd.length === 0) {
+              setBulkError('❌ No valid student data found in Excel file\n\n💡 Make sure your Excel file has:\n• Proper column headers (full_name, phone, gender, class)\n• At least one row with complete student data');
+              setLoading(false);
+              return;
+            }
+            
+            console.log(`📊 Successfully parsed ${studentsToAdd.length} students from Excel`);
+            await processStudentUpload(studentsToAdd);
+            
+          } catch (error) {
+            console.error('📊 Excel parsing error:', error);
+            setBulkError(`❌ Failed to parse Excel file\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n\n💡 Try:\n• Re-saving the Excel file\n• Converting to CSV format\n• Checking for corrupted data\n• Using a simpler Excel format`);
+            setLoading(false);
+          }
+        };
+        
+        reader.onerror = () => {
+          setBulkError('❌ Failed to read Excel file\n\n💡 Try:\n• Using a different file\n• Checking file permissions\n• Converting to CSV format');
+          setLoading(false);
+        };
+        
+        reader.readAsArrayBuffer(bulkFile);
+        
+      } else if (isCsvFile) {
+        // Handle CSV files
+        console.log('📄 Processing CSV file:', bulkFile.name);
+        setLoading(true);
+        
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            const text = event.target?.result as string;
+            if (!text || text.trim().length === 0) {
+              setBulkError('❌ CSV file is empty\n\n💡 Make sure your CSV file contains data');
+              setLoading(false);
+              return;
+            }
+            
+            console.log('📄 CSV file content preview:', text.substring(0, 200) + '...');
+            
+            // Enhanced CSV parser handling quoted fields and various delimiters
+            const parseCSVLine = (line: string): string[] => {
+              const result = [];
+              let current = '';
+              let inQuotes = false;
+              let quoteChar = '';
+              
+              for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                
+                if ((char === '"' || char === "'") && !inQuotes) {
+                  inQuotes = true;
+                  quoteChar = char;
+                } else if (char === quoteChar && inQuotes) {
+                  if (nextChar === quoteChar) {
+                    // Escaped quote
+                    current += char;
+                    i++; // Skip next quote
+                  } else {
+                    inQuotes = false;
+                    quoteChar = '';
+                  }
+                } else if (char === ',' && !inQuotes) {
+                  result.push(current.trim());
+                  current = '';
+                } else {
+                  current += char;
+                }
+              }
+              result.push(current.trim());
+              return result;
+            };
+
+            // Split lines and filter empty ones
+            const lines = text.split(/\r?\n/).filter(line => line.trim());
+            
+            if (lines.length < 2) {
+              setBulkError(`❌ CSV file has insufficient data\n\n📋 Found ${lines.length} line(s)\n\n💡 Make sure your CSV file has:\n• Header row (full_name, phone, gender, class)\n• At least one data row with student information`);
+              setLoading(false);
+              return;
+            }
+
+            // Parse and validate headers
+            const headers = parseCSVLine(lines[0]).map(h => h.replace(/['"]/g, '').trim().toLowerCase());
+            console.log('📄 CSV headers found:', headers);
+            
+            // Check required columns with flexible matching
+            const requiredColumns = ['full_name', 'phone', 'gender', 'class'];
+            const headerMap: {[key: string]: number} = {};
+            
+            // Map headers to column indices (allow some flexibility)
+            headers.forEach((header, index) => {
+              const cleanHeader = header.replace(/[^a-z_]/g, '');
+              if (requiredColumns.includes(cleanHeader)) {
+                headerMap[cleanHeader] = index;
+              }
+              // Alternative mappings
+              if (header.includes('name')) headerMap['full_name'] = index;
+              if (header.includes('phone') || header.includes('mobile')) headerMap['phone'] = index;
+              if (header.includes('gender') || header.includes('sex')) headerMap['gender'] = index;
+              if (header.includes('class') || header.includes('grade')) headerMap['class'] = index;
+            });
+            
+            const missingColumns = requiredColumns.filter(col => !(col in headerMap));
+            
+            if (missingColumns.length > 0) {
+              setBulkError(`❌ Missing required columns: ${missingColumns.join(', ')}\n\n✅ Required columns (exact names):\n• full_name\n• phone\n• gender\n• class\n\n📋 Found headers: ${headers.join(', ')}\n\n💡 Make sure column names match exactly`);
+              setLoading(false);
+              return;
+            }
+
+            // Parse data rows with comprehensive validation
+            const studentsToAdd: any[] = [];
+            const errors: string[] = [];
+            
+            for (let i = 1; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line) continue; // Skip empty lines
+              
+              try {
+                const values = parseCSVLine(line).map(v => v.replace(/['"]/g, '').trim());
+                console.log(`📄 Row ${i} parsed:`, values);
+                
+                if (values.length < Math.max(...Object.values(headerMap)) + 1) {
+                  errors.push(`Row ${i + 1}: Insufficient columns (expected ${Math.max(...Object.values(headerMap)) + 1}, got ${values.length})`);
+                  continue;
+                }
+                
+                const studentData = {
+                  full_name: (values[headerMap.full_name] || '').trim(),
+                  phone: (values[headerMap.phone] || '').trim(),
+                  gender: (values[headerMap.gender] || 'male').trim(),
+                  class: (values[headerMap.class] || '').trim()
+                };
+                
+                // Validate required fields
+                if (!studentData.full_name) {
+                  errors.push(`Row ${i + 1}: Missing full name`);
+                  continue;
+                }
+                if (!studentData.phone) {
+                  errors.push(`Row ${i + 1}: Missing phone number`);
+                  continue;
+                }
+                if (!studentData.class) {
+                  errors.push(`Row ${i + 1}: Missing class`);
+                  continue;
+                }
+                
+                // Clean and validate phone number
+                studentData.phone = studentData.phone.replace(/[\s\-\(\)]/g, '');
+                if (!/^09\d{8}$/.test(studentData.phone)) {
+                  errors.push(`Row ${i + 1}: Invalid phone "${studentData.phone}" (must be 09xxxxxxxx)`);
+                  continue;
+                }
+                
+                // Normalize gender
+                const genderLower = studentData.gender.toLowerCase();
+                if (genderLower.includes('m') || genderLower === 'male') {
+                  studentData.gender = 'Male';
+                } else if (genderLower.includes('f') || genderLower === 'female') {
+                  studentData.gender = 'Female';
+                } else {
+                  studentData.gender = 'Male'; // Default
+                }
+                
+                studentsToAdd.push(studentData);
+                
+              } catch (rowError) {
+                errors.push(`Row ${i + 1}: Error processing data - ${rowError}`);
+              }
+            }
+            
+            // Check for validation errors
+            if (errors.length > 0) {
+              const errorMessage = `❌ Found ${errors.length} error(s) in CSV file:\n\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? `\n... and ${errors.length - 5} more errors` : ''}\n\n💡 Please fix these issues and try again`;
+              setBulkError(errorMessage);
+              setLoading(false);
+              return;
+            }
+            
+            if (studentsToAdd.length === 0) {
+              setBulkError('❌ No valid student data found in CSV file\n\n💡 Make sure your CSV file has:\n• Proper column headers (full_name, phone, gender, class)\n• At least one row with complete student data');
+              setLoading(false);
+              return;
+            }
+            
+            console.log(`📄 Successfully parsed ${studentsToAdd.length} students from CSV`);
+            await processStudentUpload(studentsToAdd);
+            
+          } catch (error) {
+            console.error('📄 CSV parsing error:', error);
+            setBulkError(`❌ Failed to parse CSV file\n\nError: ${error instanceof Error ? error.message : 'Unknown error'}\n\n💡 Try:\n• Check file encoding (should be UTF-8)\n• Verify CSV format (comma-separated)\n• Remove special characters\n• Use Excel format instead`);
+            setLoading(false);
+          }
+        };
+        
+        reader.onerror = () => {
+          setBulkError('❌ Failed to read CSV file\n\n💡 Try:\n• Using a different file\n• Checking file permissions\n• Converting to Excel format');
+          setLoading(false);
+        };
+        
+        reader.readAsText(bulkFile, 'UTF-8');
+      }
+    } catch (error) {
+      console.error('📁 File processing error:', error);
+      setBulkError(`❌ Failed to process file\n\nError: ${error}\n\n💡 Try:\n• Use a different file\n• Check file permissions\n• Ensure file is not corrupted`);
+    }
+
+    // Common function to process student upload with enhanced error handling
+    const processStudentUpload = async (studentsToAdd: any[]) => {
+      try {
+        if (studentsToAdd.length === 0) {
+          setBulkError('❌ No valid student data found\n\n💡 Make sure your file contains valid student information');
+          setLoading(false);
+          return;
+        }
+
+        console.log(`🚀 Uploading ${studentsToAdd.length} students to server...`);
+        
+        // Show progress for large uploads
+        if (studentsToAdd.length > 100) {
+          setBulkSuccess(`📤 Processing ${studentsToAdd.length} students... Please wait.`);
+        }
+
         const response = await fetch('/api/students/bulk', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -457,28 +853,71 @@ export default function StudentManagement() {
         });
 
         const data = await response.json();
+        console.log('📥 Server response:', data);
 
         if (response.ok) {
-          const summary = data.summary || { inserted: studentsToAdd.length, skipped: 0 };
-          let successMessage = `Successfully added ${summary.inserted} student${summary.inserted !== 1 ? 's' : ''}!`;
+          const summary = data.summary || { inserted: studentsToAdd.length, skipped: 0, total: studentsToAdd.length };
+          
+          let successMessage = `✅ Upload completed successfully!\n\n`;
+          successMessage += `📊 Summary:\n`;
+          successMessage += `• Total processed: ${summary.total}\n`;
+          successMessage += `• Successfully added: ${summary.inserted}\n`;
           
           if (summary.skipped > 0) {
-            successMessage += ` (${summary.skipped} duplicate${summary.skipped !== 1 ? 's' : ''} skipped)`;
+            successMessage += `• Duplicates skipped: ${summary.skipped}\n`;
+            successMessage += `\n💡 Duplicates are students with the same name and phone number`;
           }
           
           setBulkSuccess(successMessage);
           setBulkFile(null);
-          fetchStudents();
+          
+          // Clear file input
+          const fileInput = document.getElementById('csvFile') as HTMLInputElement;
+          if (fileInput) fileInput.value = '';
+          
+          // Refresh student list
+          await fetchStudents();
           
           toast({
             title: "Upload Complete",
-            description: data.message || successMessage,
+            description: `Added ${summary.inserted} students${summary.skipped > 0 ? `, skipped ${summary.skipped} duplicates` : ''}`,
           });
+          
+          // Switch to manage tab to see results
+          if (summary.inserted > 0) {
+            setTimeout(() => setActiveTab('manage'), 1500);
+          }
+          
         } else {
-          setBulkError(data.message || 'Failed to upload students');
+          // Handle server errors with detailed messages
+          let errorMessage = '❌ Upload failed\n\n';
+          
+          if (response.status === 400) {
+            errorMessage += `📋 Validation Error:\n${data.message || 'Invalid data format'}\n\n💡 Please check your file format and data`;
+          } else if (response.status === 413) {
+            errorMessage += `📦 File too large\n\n💡 Try uploading fewer students at once (max 1000 per batch)`;
+          } else if (response.status === 500) {
+            errorMessage += `🔧 Server Error:\n${data.message || 'Internal server error'}\n\n💡 Please try again or contact support`;
+          } else {
+            errorMessage += `🌐 Network Error (${response.status}):\n${data.message || 'Unknown error'}\n\n💡 Check your internet connection and try again`;
+          }
+          
+          setBulkError(errorMessage);
         }
       } catch (err: any) {
-        setBulkError('Error processing CSV file');
+        console.error('📤 Upload error:', err);
+        
+        let errorMessage = '❌ Upload failed\n\n';
+        
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          errorMessage += `🌐 Network Error:\nCannot connect to server\n\n💡 Check your internet connection and try again`;
+        } else if (err.name === 'SyntaxError') {
+          errorMessage += `📋 Data Error:\nInvalid response from server\n\n💡 Try again or contact support`;
+        } else {
+          errorMessage += `🔧 Unexpected Error:\n${err.message || 'Unknown error occurred'}\n\n💡 Please try again`;
+        }
+        
+        setBulkError(errorMessage);
       } finally {
         setLoading(false);
       }
@@ -1020,32 +1459,50 @@ export default function StudentManagement() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
                   <div>
-                    <h3 className="font-medium">Download CSV Template</h3>
+                    <h3 className="font-medium">📊 Download Excel Template</h3>
                     <p className="text-sm text-muted-foreground">
-                      Get a sample CSV file with the correct format (full_name, phone, gender, class) - Opens in Excel
+                      Get a sample Excel file with the correct format and sample data
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      ✅ Includes: full_name, phone, gender, class columns with Amharic examples
                     </p>
                   </div>
                   <Button onClick={downloadTemplate} variant="outline">
                     <Download className="w-4 h-4 mr-2" />
-                    Download Template
+                    Download Excel Template
                   </Button>
                 </div>
 
                 <form onSubmit={handleBulkUpload} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="csvFile">Upload CSV File *</Label>
+                    <Label htmlFor="csvFile">Upload Excel or CSV File *</Label>
                     <Input
                       id="csvFile"
                       type="file"
-                      accept=".csv"
-                      onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                      accept=".xlsx,.xls,.csv"
+                      onChange={(e) => {
+                        setBulkFile(e.target.files?.[0] || null);
+                        setBulkError('');
+                        setBulkSuccess('');
+                      }}
                       required
                     />
                     {bulkFile && (
-                      <p className="text-sm text-muted-foreground">
-                        Selected: {bulkFile.name}
-                      </p>
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <p className="text-sm font-medium">Selected file:</p>
+                        <p className="text-sm text-muted-foreground">
+                          📄 {bulkFile.name} ({(bulkFile.size / 1024).toFixed(1)} KB)
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {bulkFile.name.toLowerCase().endsWith('.xlsx') || bulkFile.name.toLowerCase().endsWith('.xls') 
+                            ? '📊 Excel format - supports Amharic text' 
+                            : '📄 CSV format - ensure UTF-8 encoding for Amharic text'}
+                        </p>
+                      </div>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      💡 Supported formats: .xlsx (Excel), .xls (Excel), .csv (UTF-8)
+                    </p>
                   </div>
 
                   <Button 
