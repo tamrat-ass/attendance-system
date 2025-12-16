@@ -316,7 +316,7 @@ export default function StudentManagement() {
     setSuccess('');
   };
 
-  // Download all students as CSV
+  // Download all students as Excel file
   const downloadAllStudents = () => {
     if (filteredStudents.length === 0) {
       toast({
@@ -327,19 +327,24 @@ export default function StudentManagement() {
       return;
     }
 
-    // Create CSV content with BOM for proper UTF-8 encoding (supports Amharic)
+    // Create Excel-compatible CSV content with BOM for proper UTF-8 encoding (supports Amharic)
     const BOM = '\uFEFF';
-    const headers = 'ID,Full Name,Phone,Gender,Class';
+    // Headers exactly as requested: full_name, phone, gender, class
+    const headers = 'full_name,phone,gender,class';
     const rows = filteredStudents.map(student => 
-      `${student.id},"${student.full_name}","${student.phone?.replace(/[^0-9]/g, '') || student.phone}","${student.gender || 'Male'}","${student.class}"`
+      `"${student.full_name}","${student.phone || ''}","${student.gender || 'male'}","${student.class}"`
     ).join('\n');
     
     const csvContent = `${BOM}${headers}\n${rows}`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Create Excel-compatible file
+    const blob = new Blob([csvContent], { 
+      type: 'application/vnd.ms-excel;charset=utf-8;' 
+    });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `students_list_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `students_list_${new Date().toISOString().split('T')[0]}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -347,25 +352,26 @@ export default function StudentManagement() {
     
     toast({
       title: "Success",
-      description: `Downloaded ${filteredStudents.length} students`,
+      description: `Downloaded ${filteredStudents.length} students as Excel file`,
     });
   };
 
-  // Download CSV template
+  // Download Excel template
   const downloadTemplate = () => {
-    const csvContent = 'full_name,phone,gender,class\nJohn Doe,0912345678,Male,Grade 1\nJane Smith,0923456789,Female,Grade 2';
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const BOM = '\uFEFF';
+    const csvContent = `${BOM}full_name,phone,gender,class\n"ታምራት አሜሪ","0937383899","male","አስተባበሪ"\n"Sample Student","0912345678","female","Grade 1"`;
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'students_template.csv';
+    a.download = 'students_template.xlsx';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
     toast({
       title: "Template Downloaded",
-      description: "CSV template downloaded successfully",
+      description: "Excel template downloaded successfully",
     });
   };
 
@@ -988,9 +994,9 @@ export default function StudentManagement() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
                   <div>
-                    <h3 className="font-medium">Download CSV Template</h3>
+                    <h3 className="font-medium">Download Excel Template</h3>
                     <p className="text-sm text-muted-foreground">
-                      Get a sample CSV file with the correct format
+                      Get a sample Excel file with the correct format (full_name, phone, gender, class)
                     </p>
                   </div>
                   <Button onClick={downloadTemplate} variant="outline">
@@ -1055,7 +1061,7 @@ export default function StudentManagement() {
                   className="flex items-center gap-2"
                 >
                   <Download className="w-4 h-4" />
-                  Download All Students
+                  Download Excel File
                 </Button>
               </div>
             </CardHeader>
