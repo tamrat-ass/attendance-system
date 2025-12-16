@@ -70,9 +70,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { full_name, phone, class: studentClass, gender } = body;
 
-    if (!full_name || !phone || !studentClass || !gender) {
+    if (!full_name || !phone || !studentClass) {
       return NextResponse.json(
-        { message: "Missing required fields" },
+        { message: "Name, phone, and class are required" },
         { status: 400 }
       );
     }
@@ -85,9 +85,11 @@ export async function POST(req: Request) {
       );
     }
 
+    // Use 'Male' as default if gender is empty
+    const finalGender = gender && gender.trim() ? gender.trim() : 'Male';
     await db.query(
       "INSERT INTO students (full_name, phone, class, gender) VALUES (?, ?, ?, ?)",
-      [full_name, phone, studentClass, gender]
+      [full_name, phone, studentClass, finalGender]
     );
 
     return NextResponse.json({ message: "Student created successfully" });

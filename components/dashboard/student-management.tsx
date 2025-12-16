@@ -162,8 +162,8 @@ export default function StudentManagement() {
     setError('');
     setSuccess('');
 
-    if (!formData.full_name || !formData.phone || !formData.class || !formData.gender) {
-      setError('All fields are required');
+    if (!formData.full_name || !formData.phone || !formData.class) {
+      setError('Name, phone, and class are required');
       return;
     }
 
@@ -215,7 +215,7 @@ export default function StudentManagement() {
 
     // Validate required fields
     if (!formData.full_name || !formData.phone || !formData.class) {
-      setError('All fields are required');
+      setError('Name, phone, and class are required');
       setLoading(false);
       return;
     }

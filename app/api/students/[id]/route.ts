@@ -10,10 +10,10 @@ export async function PUT(
     const { id } = await params;
     const { full_name, phone, class: studentClass, gender } = await request.json();
 
-    // Validate required fields
-    if (!full_name || !phone || !studentClass || !gender) {
+    // Validate required fields (gender is optional)
+    if (!full_name || !phone || !studentClass) {
       return NextResponse.json(
-        { success: false, message: 'All fields are required' },
+        { success: false, message: 'Name, phone, and class are required' },
         { status: 400 }
       );
     }
@@ -36,10 +36,11 @@ export async function PUT(
       );
     }
 
-    // Update student
+    // Update student (use 'Male' as default if gender is empty)
+    const finalGender = gender && gender.trim() ? gender.trim() : 'Male';
     await db.query(
       'UPDATE students SET full_name = ?, phone = ?, class = ?, gender = ? WHERE id = ?',
-      [full_name, phone, studentClass, gender, id]
+      [full_name, phone, studentClass, finalGender, id]
     );
 
     return NextResponse.json({
