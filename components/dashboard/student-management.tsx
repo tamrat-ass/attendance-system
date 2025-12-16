@@ -100,20 +100,61 @@ export default function StudentManagement() {
     }
   };
 
-  // Get classes from students (no separate table needed)
-  const getClassesFromStudents = () => {
-    const uniqueClasses = Array.from(new Set(students.map(s => s.class))).filter(Boolean).sort();
-    return uniqueClasses.map(className => ({
-      id: className, // Use class name as ID
-      name: className,
-      student_count: students.filter(s => s.class === className).length
-    }));
+  // Load classes from classes API (not from existing students)
+  const [availableClasses, setAvailableClasses] = useState<Array<{id: string, name: string, student_count: number}>>([]);
+  
+  const loadClassesFromAPI = async () => {
+    try {
+      const response = await fetch('/api/classes', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const classesData = data.data || [];
+        const classesWithCounts = classesData.map((cls: any) => ({
+          id: cls.name,
+          name: cls.name,
+          student_count: students.filter(s => s.class === cls.name).length
+        }));
+        setAvailableClasses(classesWithCounts);
+        console.log('Classes loaded from API:', classesWithCounts);
+      } else {
+        // Fallback: extract from existing students if API fails
+        const uniqueClasses = Array.from(new Set(students.map(s => s.class))).filter(Boolean).sort();
+        const fallbackClasses = uniqueClasses.map(className => ({
+          id: className,
+          name: className,
+          student_count: students.filter(s => s.class === className).length
+        }));
+        setAvailableClasses(fallbackClasses);
+        console.log('Fallback: Classes from students:', fallbackClasses);
+      }
+    } catch (err) {
+      // Fallback: extract from existing students if API fails
+      const uniqueClasses = Array.from(new Set(students.map(s => s.class))).filter(Boolean).sort();
+      const fallbackClasses = uniqueClasses.map(className => ({
+        id: className,
+        name: className,
+        student_count: students.filter(s => s.class === className).length
+      }));
+      setAvailableClasses(fallbackClasses);
+      console.log('Error loading classes, using fallback:', fallbackClasses);
+    }
   };
 
-  // Load students on component mount
+  // Load students and classes on component mount
   useEffect(() => {
     fetchStudents();
   }, []);
+
+  // Load classes after students are loaded
+  useEffect(() => {
+    if (students.length > 0) {
+      loadClassesFromAPI();
+    }
+  }, [students]);
 
   // Handle adding a new student
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -424,8 +465,7 @@ export default function StudentManagement() {
     }
 
     // Check if class already exists
-    const existingClasses = getClassesFromStudents();
-    if (existingClasses.some(c => c.name.toLowerCase() === newClassName.trim().toLowerCase())) {
+    if (availableClasses.some(c => c.name.toLowerCase() === newClassName.trim().toLowerCase())) {
       setClassError('Class already exists');
       return;
     }
@@ -471,8 +511,7 @@ export default function StudentManagement() {
     const newClassName = editClassName.trim();
 
     // Check if new class name already exists
-    const existingClasses = getClassesFromStudents();
-    if (existingClasses.some(c => c.name.toLowerCase() === newClassName.toLowerCase() && c.name !== oldClassName)) {
+    if (availableClasses.some(c => c.name.toLowerCase() === newClassName.toLowerCase() && c.name !== oldClassName)) {
       setClassError('Class name already exists');
       return;
     }
@@ -540,9 +579,8 @@ export default function StudentManagement() {
     }
   };
 
-  // Get unique classes from students (simple approach)
-  const uniqueClasses = Array.from(new Set(students.map(s => s.class))).filter(Boolean).sort();
-  const classesData = getClassesFromStudents();
+  // Use classes from API
+  const classesData = availableClasses;
 
   // Filter students based on search and class filter, then sort by ID
   const filteredStudents = students

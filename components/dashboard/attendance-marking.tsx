@@ -30,7 +30,7 @@ interface Student {
 
 interface AttendanceRecord {
   studentId: number;
-  status: 'present' | 'absent' | 'late' | 'permission';
+  status: 'present' | 'absent' | 'late' | 'permission' | 'sick' | 'excused';
   date: string;
   notes?: string;
 }
@@ -52,6 +52,40 @@ export default function AttendanceMarking() {
   const [classes, setClasses] = useState<string[]>([]);
   const [lockedStudents, setLockedStudents] = useState<Set<number>>(new Set());
   const { toast } = useToast();
+
+  // Load classes from classes API (not from existing students)
+  const loadClassesFromAPI = async () => {
+    try {
+      const response = await fetch('/api/classes', {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const classesData = data.data || [];
+        const classNames = classesData.map((c: any) => c.name).sort();
+        setClasses(classNames);
+        
+        console.log('Classes loaded from API:', classNames);
+        
+        // Set first class as default
+        if (classNames.length > 0 && !selectedClass) {
+          setSelectedClass(classNames[0]);
+        }
+      } else {
+        // Fallback: extract from existing students if API fails
+        const uniqueClasses = [...new Set(students.map((s: Student) => s.class))].sort() as string[];
+        setClasses(uniqueClasses);
+        console.log('Fallback: Classes from students:', uniqueClasses);
+      }
+    } catch (err) {
+      // Fallback: extract from existing students if API fails
+      const uniqueClasses = [...new Set(students.map((s: Student) => s.class))].sort() as string[];
+      setClasses(uniqueClasses);
+      console.log('Error loading classes, using fallback:', uniqueClasses);
+    }
+  };
 
   // Fetch students from database
   const fetchStudents = async () => {
@@ -85,17 +119,10 @@ export default function AttendanceMarking() {
       const studentsData = data.data || [];
       setStudents(studentsData);
       
-      // Extract unique classes and sort them
-      const uniqueClasses = [...new Set(studentsData.map((s: Student) => s.class))].sort() as string[];
-      setClasses(uniqueClasses);
-      
       console.log('Total students loaded:', studentsData.length);
-      console.log('Unique classes found:', uniqueClasses);
       
-      // Set first class as default
-      if (uniqueClasses.length > 0 && !selectedClass) {
-        setSelectedClass(uniqueClasses[0] as string);
-      }
+      // Load classes from classes table (not from existing students)
+      await loadClassesFromAPI();
     } catch (err: any) {
       toast({
         title: "Error",
@@ -384,16 +411,26 @@ export default function AttendanceMarking() {
     // Helper function to translate status to Amharic
     const translateStatus = (status: string) => {
       const statusMap: { [key: string]: string } = {
-        'present': 'ተገኝቷል',
-        'absent': 'ተቀምጧል', 
-        'late': 'ዘግይቷል',
+        'present': 'የተገኘበት',
+        'absent': 'ቀሪ', 
+        'late': 'ያረፈደ ',
         'permission': 'ፈቃድ',
         'Not Marked': 'አልተመዘገበም'
       };
       return statusMap[status] || status;
     };
 
-    const data = classStudents.map(student => ({
+    // Define the type for Amharic export data
+    type AmharicExportRow = {
+      'የተማሪ መለያ': number;
+      'ስም': string;
+      'ስልክ': string;
+      'ክፍል': string;
+      'ሁኔታ': string;
+      'ማስታወሻ': string;
+    };
+
+    const data: AmharicExportRow[] = classStudents.map(student => ({
       'የተማሪ መለያ': student.id,
       'ስም': student.full_name,
       'ስልክ': student.phone,
@@ -402,11 +439,11 @@ export default function AttendanceMarking() {
       'ማስታወሻ': notes[student.id] || ''
     }));
 
-    const headers = Object.keys(data[0]);
+    const headers = Object.keys(data[0]) as (keyof AmharicExportRow)[];
     const csv = [
       headers.join(','),
-      ...data.map(row => 
-        headers.map(h => `"${row[h as keyof typeof row]}"`).join(',')
+      ...data.map((row: AmharicExportRow) => 
+        headers.map(h => `"${row[h]}"`).join(',')
       )
     ].join('\n');
 
@@ -420,6 +457,8 @@ export default function AttendanceMarking() {
     a.click();
   };
 
+
+
   // Export all attendance records (all classes)
   const handleExportAllAttendance = async () => {
     setLoading(true);
@@ -431,7 +470,19 @@ export default function AttendanceMarking() {
         // Create a map of student IDs to student info
         const studentMap = new Map(students.map(s => [s.id, s]));
 
-        const exportData = data.data.map((record: any) => {
+        // Define the type for export data
+        type ExportRow = {
+          'Student ID': number;
+          'Name': string;
+          'Phone': string;
+          'Class': string;
+          'Gender': string;
+          'Status': string;
+          'Notes': string;
+          'Date': string;
+        };
+
+        const exportData: ExportRow[] = data.data.map((record: any) => {
           const student = studentMap.get(record.student_id);
           return {
             'Student ID': record.student_id,
@@ -445,11 +496,11 @@ export default function AttendanceMarking() {
           };
         });
 
-        const headers = Object.keys(exportData[0]);
+        const headers = Object.keys(exportData[0]) as (keyof ExportRow)[];
         const csv = [
           headers.join(','),
-          ...exportData.map(row => 
-            headers.map(h => `"${row[h as keyof typeof row]}"`).join(',')
+          ...exportData.map((row: ExportRow) => 
+            headers.map(h => `"${row[h]}"`).join(',')
           )
         ].join('\n');
 
