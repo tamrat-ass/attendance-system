@@ -129,12 +129,34 @@ export async function POST(req: Request) {
 
     const studentId = result.insertId;
 
-    console.log(`✅ Student ${studentId} created successfully`);
+    // Try to send registration email (non-blocking)
+    let emailSent = false;
+    try {
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://mk-attendance.vercel.app'}/api/notifications/registration`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: studentId,
+          full_name,
+          email: finalEmail,
+          phone,
+          class: studentClass,
+          gender: finalGender,
+        }),
+      });
+      
+      if (emailResponse.ok) {
+        emailSent = true;
+        console.log(`✅ Registration email sent to ${finalEmail}`);
+      }
+    } catch (emailError) {
+      console.log(`⚠️ Email failed but student created: ${emailError}`);
+    }
 
     return NextResponse.json({ 
-      message: "Student created successfully",
+      message: "Student created successfully" + (emailSent ? " and registration email sent!" : ""),
       student_id: studentId,
-      email_sent: false
+      email_sent: emailSent
     });
   } catch (error: any) {
     return NextResponse.json(
