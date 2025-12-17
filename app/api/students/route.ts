@@ -160,11 +160,13 @@ export async function POST(req: Request) {
           phone: phone,
           timestamp: Date.now()
         };
+        
+        console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
 
         // Create email content
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #6A5ACD, #9370DB); padding: 20px; text-align: center;">
+            <div style="background: linear-gradient(135deg, #8B0000, #B22222); padding: 20px; text-align: center;">
               <h1 style="color: white; margin: 0;">MK Attendance System</h1>
               <p style="color: white; margin: 5px 0;">Student Registration Confirmation</p>
             </div>
@@ -176,7 +178,7 @@ export async function POST(req: Request) {
               </p>
               
               <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <h3 style="color: #6A5ACD; margin-top: 0;">Your Registration Details:</h3>
+                <h3 style="color: #8B0000; margin-top: 0;">Your Registration Details:</h3>
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr>
                     <td style="padding: 8px 0; font-weight: bold; color: #333;">Student ID:</td>
@@ -202,13 +204,13 @@ export async function POST(req: Request) {
               </div>
               
               <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                <h3 style="color: #6A5ACD; margin-top: 0;">Your Personal QR Code</h3>
-                <p style="color: #666; margin-bottom: 15px;">
-                  Your QR code data: <strong>${JSON.stringify(qrData)}</strong>
-                </p>
+                <h3 style="color: #8B0000; margin-top: 0;">Your Personal QR Code</h3>
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0; font-family: monospace; word-break: break-all;">
+                  ${JSON.stringify(qrData, null, 2)}
+                </div>
                 <p style="color: #666; font-size: 14px;">
                   <strong>How to use:</strong><br>
-                  • Show this information to your teacher for QR code generation<br>
+                  • Show this information to your coordinator for QR code generation<br>
                   • Your QR code will be used for attendance tracking<br>
                   • Keep this email safe for future reference
                 </p>
