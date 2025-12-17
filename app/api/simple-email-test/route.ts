@@ -5,10 +5,10 @@ export async function POST(req: Request) {
   try {
     const { email, name } = await req.json();
     
-    console.log('🔥 SIMPLE EMAIL TEST STARTING...');
+    console.log('🔥 SIMPLE EMAIL TEST STARTING - v2...');
     console.log('🔥 Target email:', email);
     console.log('🔥 Student name:', name);
-    console.log('🔥 Using 16-char App Password');
+    console.log('🔥 Using updated 16-char App Password');
     
     // Simple Gmail configuration
     const transporter = nodemailer.createTransport({
