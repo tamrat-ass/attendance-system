@@ -2,21 +2,21 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
 
-// Email configuration with fallback
+// Email configuration - requires environment variables
 const EMAIL_CONFIG = {
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER || 'mkattendance2024@gmail.com',
-    pass: process.env.SMTP_PASS || 'temp-password-123',
+    user: process.env.SMTP_USER || 'tamrat.ass@gmail.com',
+    pass: process.env.SMTP_PASS || 'your-gmail-app-password',
   },
 };
 
 // Create transporter
 let transporter: any = null;
 try {
-  transporter = nodemailer.createTransporter(EMAIL_CONFIG);
+  transporter = nodemailer.createTransport(EMAIL_CONFIG);
 } catch (error) {
   console.error('Failed to create email transporter:', error);
 }
@@ -33,9 +33,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check if email is configured
-    if (!transporter || !process.env.SMTP_USER || process.env.SMTP_USER === 'your-email@gmail.com') {
-      console.log('⚠️ Email not configured, skipping registration email');
+    // Check if email is properly configured
+    if (!transporter || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.log('⚠️ Email credentials not configured, skipping registration email');
       return NextResponse.json({ 
         message: "Student registered successfully (email not configured)",
         email_sent: false
