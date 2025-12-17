@@ -129,14 +129,49 @@ export async function POST(req: Request) {
 
     const studentId = result.insertId;
 
-    // Email notification is now completely optional
-    // Student creation succeeds regardless of email status
-    console.log(`✅ Student ${studentId} created successfully`);
+    // Generate QR code for the student
+    const qrData = {
+      student_id: studentId,
+      full_name: full_name,
+      class: studentClass,
+      timestamp: Date.now()
+    };
+    
+    let emailSent = false;
+    
+    // Try to send registration email with QR code (non-blocking)
+    try {
+      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://mk-attendance.vercel.app'}/api/notifications/registration`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          student_id: studentId,
+          full_name,
+          email: finalEmail,
+          phone,
+          class: studentClass,
+          gender: finalGender,
+          qr_code_data: JSON.stringify(qrData)
+        }),
+      });
+
+      if (emailResponse.ok) {
+        console.log(`✅ Registration email sent successfully to ${finalEmail}`);
+        emailSent = true;
+      } else {
+        console.log(`⚠️ Email sending failed, but student created successfully`);
+      }
+    } catch (emailError) {
+      console.error('Email sending error (non-blocking):', emailError);
+      // Don't fail student creation if email fails
+    }
 
     return NextResponse.json({ 
-      message: "Student created successfully",
+      message: "Student created successfully" + (emailSent ? " and registration email sent" : ""),
       student_id: studentId,
-      email_sent: false // Email disabled for now
+      email_sent: emailSent
     });
   } catch (error: any) {
     return NextResponse.json(
