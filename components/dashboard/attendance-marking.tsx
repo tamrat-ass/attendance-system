@@ -53,6 +53,35 @@ export default function AttendanceMarking() {
   const [lockedStudents, setLockedStudents] = useState<Set<number>>(new Set());
   const { toast } = useToast();
 
+  // Smart Search Helper Functions
+  const getSmartSearchPlaceholder = (input: string) => {
+    if (!input) return "Type 09... for phone, numbers for ID, or text for name";
+    
+    const trimmed = input.trim();
+    if (/^09/.test(trimmed) && trimmed.length < 10) {
+      return "Continue typing phone number (09xxxxxxxx)";
+    } else if (/^09\d{8}$/.test(trimmed)) {
+      return "Phone number search active";
+    } else if (/^\d+$/.test(trimmed)) {
+      return "Student ID search active";
+    } else {
+      return "Name/class search active";
+    }
+  };
+
+  const getSearchTypeHint = (input: string) => {
+    if (!input) return "";
+    
+    const trimmed = input.trim();
+    if (/^09\d{8}$/.test(trimmed)) {
+      return "🔍 Searching by phone number (exact match)";
+    } else if (/^\d+$/.test(trimmed)) {
+      return "🔍 Searching by student ID (exact match)";
+    } else {
+      return "🔍 Searching by name or class (partial match across all classes)";
+    }
+  };
+
   // Load classes from classes API (not from existing students)
   const loadClassesFromAPI = async () => {
     try {
@@ -195,20 +224,29 @@ export default function AttendanceMarking() {
     }
   }, [selectedDate, selectedClass]);
 
-  // Filter students by search term (search across ALL classes) and then by selected class
+  // Smart Search Logic - Filter students by search term
   const classStudents = students
-    .filter(s => 
-      // If searching, search across ALL classes
-      searchStudent === '' ||
-      s.id.toString().includes(searchStudent) || 
-      s.full_name.toLowerCase().includes(searchStudent.toLowerCase()) ||
-      s.phone.includes(searchStudent)
-    )
-    .filter(s => 
-      // If not searching, filter by selected class
-      // If searching, show results from all classes
-      searchStudent !== '' || s.class === selectedClass
-    );
+    .filter(s => {
+      if (searchStudent === '') {
+        // No search term - show only selected class
+        return s.class === selectedClass;
+      }
+      
+      const trimmedSearch = searchStudent.trim();
+      
+      // Smart Search Logic
+      if (/^09\d{8}$/.test(trimmedSearch)) {
+        // Phone number search (09xxxxxxxx - exact match)
+        return s.phone === trimmedSearch;
+      } else if (/^\d+$/.test(trimmedSearch)) {
+        // Student ID search (digits only, not starting with 09)
+        return s.id.toString() === trimmedSearch;
+      } else {
+        // Name search (contains letters or mixed characters) - search across ALL classes
+        return s.full_name.toLowerCase().includes(trimmedSearch.toLowerCase()) ||
+               s.class.toLowerCase().includes(trimmedSearch.toLowerCase());
+      }
+    });
 
   // Handle status change for a student
   const handleStatusChange = (studentId: number, status: string) => {
@@ -569,14 +607,19 @@ export default function AttendanceMarking() {
             </div>
 
             <div className="space-y-2 sm:col-span-2 lg:col-span-1">
-              <Label htmlFor="searchStudent" className="text-sm font-medium">Search Student</Label>
+              <Label htmlFor="searchStudent" className="text-sm font-medium">🔍 Smart Search</Label>
               <Input
                 id="searchStudent"
-                placeholder="Search by ID, name, or phone..."
+                placeholder={getSmartSearchPlaceholder(searchStudent)}
                 value={searchStudent}
                 onChange={(e) => setSearchStudent(e.target.value)}
                 className="h-10"
               />
+              {searchStudent && (
+                <p className="text-xs text-muted-foreground">
+                  {getSearchTypeHint(searchStudent)}
+                </p>
+              )}
             </div>
           </div>
         </CardContent>

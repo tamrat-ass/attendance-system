@@ -1053,13 +1053,55 @@ export default function StudentManagement() {
   // Use classes from API
   const classesData = availableClasses;
 
-  // Filter students based on search and class filter, then sort by ID
+  // Smart Search Helper Functions
+  const getSmartSearchPlaceholder = (input: string) => {
+    if (!input) return "Type 09... for phone, numbers for ID, or text for name";
+    
+    const trimmed = input.trim();
+    if (/^09/.test(trimmed) && trimmed.length < 10) {
+      return "Continue typing phone number (09xxxxxxxx)";
+    } else if (/^09\d{8}$/.test(trimmed)) {
+      return "Phone number search active";
+    } else if (/^\d+$/.test(trimmed)) {
+      return "Student ID search active";
+    } else {
+      return "Name/class search active";
+    }
+  };
+
+  const getSearchTypeHint = (input: string) => {
+    if (!input) return "";
+    
+    const trimmed = input.trim();
+    if (/^09\d{8}$/.test(trimmed)) {
+      return "🔍 Searching by phone number (exact match)";
+    } else if (/^\d+$/.test(trimmed)) {
+      return "🔍 Searching by student ID (exact match)";
+    } else {
+      return "🔍 Searching by name or class (partial match)";
+    }
+  };
+
+  // Smart Filter students based on search and class filter, then sort by ID
   const filteredStudents = students
     .filter(student => {
-      const matchesSearch = 
-        student.id.toString().includes(searchTerm) ||
-        student.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        student.phone.includes(searchTerm);
+      // Smart Search Logic
+      let matchesSearch = true;
+      if (searchTerm.trim()) {
+        const trimmedSearch = searchTerm.trim();
+        
+        if (/^09\d{8}$/.test(trimmedSearch)) {
+          // Phone number search (09xxxxxxxx - exact match)
+          matchesSearch = student.phone === trimmedSearch;
+        } else if (/^\d+$/.test(trimmedSearch)) {
+          // Student ID search (digits only, not starting with 09)
+          matchesSearch = student.id.toString() === trimmedSearch;
+        } else {
+          // Name search (contains letters or mixed characters)
+          matchesSearch = student.full_name.toLowerCase().includes(trimmedSearch.toLowerCase()) ||
+                         student.class.toLowerCase().includes(trimmedSearch.toLowerCase());
+        }
+      }
       
       const matchesClass = selectedClass === 'all' || student.class === selectedClass;
       
@@ -1556,11 +1598,16 @@ export default function StudentManagement() {
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="search"
-                      placeholder="Search by ID, name, or phone..."
+                      placeholder={getSmartSearchPlaceholder(searchTerm)}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10"
                     />
+                    {searchTerm && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {getSearchTypeHint(searchTerm)}
+                      </p>
+                    )}
                   </div>
                 </div>
 
