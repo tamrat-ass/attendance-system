@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     console.log('🔥 Student name:', name);
     
     // Simple Gmail configuration
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: 'tame.assu23@gmail.com',
