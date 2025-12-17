@@ -12,21 +12,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Query user from database
+    // First check if username exists
+    const userCheck = await sql`
+      SELECT id, username, password_hash, status FROM users WHERE username = ${username}
+    `;
+
+    if (userCheck.rows.length === 0) {
+      return NextResponse.json(
+        { success: false, message: 'You entered wrong username' },
+        { status: 401 }
+      );
+    }
+
+    const userRecord = userCheck.rows[0];
+
+    // Check if user is active
+    if (userRecord.status !== 'active') {
+      return NextResponse.json(
+        { success: false, message: 'Account is not active. Please contact administrator.' },
+        { status: 401 }
+      );
+    }
+
+    // Check password
+    if (userRecord.password_hash !== password) {
+      return NextResponse.json(
+        { success: false, message: 'You entered wrong password' },
+        { status: 401 }
+      );
+    }
+
+    // Get full user details for successful login
     const result = await sql`
       SELECT id, username, email, full_name, role, status,
        can_manage_students, can_add_student, can_update_student, can_upload_students, can_delete_student,
        can_mark_attendance, can_view_reports, can_export_data,
        can_manage_users, can_delete_user, can_manage_passwords
-       FROM users WHERE username = ${username} AND password_hash = ${password} AND status = 'active'
+       FROM users WHERE username = ${username} AND status = 'active'
     `;
-
-    if (result.rows.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Invalid username or password' },
-        { status: 401 }
-      );
-    }
 
     const user = result.rows[0];
 

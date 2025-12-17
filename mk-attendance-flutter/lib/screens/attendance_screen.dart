@@ -8,6 +8,7 @@ import '../utils/correct_ethiopian_date.dart';
 import '../utils/date_converter.dart';
 import '../utils/app_colors.dart';
 import '../services/api_service.dart';
+import 'qr_attendance_screen.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -844,8 +845,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: isDarkTheme ? Colors.grey.shade900 : Colors.grey.shade50,
       body: SafeArea(
         child: Column(
           children: [
@@ -1084,7 +1087,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ],
             ),
           ),
-          
+
+
           // Students List
           Expanded(
             child: Consumer<StudentProvider>(
@@ -1129,7 +1133,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     // Name search (contains letters or mixed characters)
                     else {
                       return student.fullName.toLowerCase().contains(trimmedSearch.toLowerCase()) ||
-                             student.studentClass.toLowerCase().contains(trimmedSearch.toLowerCase());
+                             student.className.toLowerCase().contains(trimmedSearch.toLowerCase());
                     }
                   }).toList();
                 } else {
@@ -1185,7 +1189,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDarkTheme ? Colors.grey.shade800 : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: hasDuplicateAttempt 
                             ? Border.all(color: Colors.red.shade300, width: 2)
@@ -1251,7 +1255,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                         'ID: ${student.id} • ${student.phone}',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.grey.shade600,
+                                          color: isDarkTheme ? Colors.grey.shade400 : Colors.grey.shade600,
                                         ),
                                       ),
                                       if (_searchQuery.isNotEmpty) ...[
@@ -1393,6 +1397,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openQRScanner(),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.qr_code_scanner),
+        label: const Text('QR Scanner'),
+      ),
     );
   }
 
@@ -1431,6 +1442,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     bool isLocked,
   ) {
     final isSelected = currentStatus == statusValue;
+    final isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     
     return Expanded(
       child: ElevatedButton.icon(
@@ -1445,13 +1457,26 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           style: const TextStyle(fontSize: 10),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? color : Colors.grey.shade200,
-          foregroundColor: isSelected ? Colors.white : Colors.grey.shade700,
+          backgroundColor: isSelected 
+              ? color 
+              : (isDarkTheme ? Colors.grey.shade800 : Colors.grey.shade200),
+          foregroundColor: isSelected 
+              ? Colors.white 
+              : (isDarkTheme ? Colors.white : Colors.grey.shade700),
           padding: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
+      ),
+    );
+  }
+
+  void _openQRScanner() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QRAttendanceScreen(),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // GET all users
 export async function GET(request: NextRequest) {
@@ -70,18 +71,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Insert new user (in production, hash the password!)
+    // Hash the password before storing
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Set default permissions based on role
+    const userRole = role || 'user';
+    const defaultPermissions = {
+      can_add_student: can_add_student ?? true,
+      can_update_student: can_update_student ?? true,
+      can_upload_students: can_upload_students ?? (userRole === 'admin' || userRole === 'manager'),
+      can_delete_student: can_delete_student ?? (userRole === 'admin'),
+      can_mark_attendance: can_mark_attendance ?? true,
+      can_view_reports: can_view_reports ?? (userRole === 'admin' || userRole === 'manager'),
+      can_export_data: can_export_data ?? (userRole === 'admin' || userRole === 'manager'),
+      can_manage_users: can_manage_users ?? (userRole === 'admin'),
+      can_delete_user: can_delete_user ?? (userRole === 'admin'),
+      can_manage_passwords: can_manage_passwords ?? (userRole === 'admin')
+    };
+
+    // Insert new user with hashed password
     const [result] = await db.query(
       `INSERT INTO users (username, email, full_name, password_hash, role, status,
-       can_manage_students, can_add_student, can_upload_students, can_delete_student,
+       can_add_student, can_update_student, can_upload_students, can_delete_student,
        can_mark_attendance, can_view_reports, can_export_data, 
        can_manage_users, can_delete_user, can_manage_passwords) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        username, email, full_name || null, password, role || 'user', status || 'active',
-        can_manage_students ?? true, can_add_student ?? true, can_upload_students ?? true, can_delete_student ?? false,
-        can_mark_attendance ?? true, can_view_reports ?? false, can_export_data ?? false,
-        can_manage_users ?? false, can_delete_user ?? false, can_manage_passwords ?? false
+        username, email, full_name || null, hashedPassword, userRole, status || 'active',
+        defaultPermissions.can_add_student ? 1 : 0,
+        defaultPermissions.can_update_student ? 1 : 0,
+        defaultPermissions.can_upload_students ? 1 : 0,
+        defaultPermissions.can_delete_student ? 1 : 0,
+        defaultPermissions.can_mark_attendance ? 1 : 0,
+        defaultPermissions.can_view_reports ? 1 : 0,
+        defaultPermissions.can_export_data ? 1 : 0,
+        defaultPermissions.can_manage_users ? 1 : 0,
+        defaultPermissions.can_delete_user ? 1 : 0,
+        defaultPermissions.can_manage_passwords ? 1 : 0
       ]
     );
 

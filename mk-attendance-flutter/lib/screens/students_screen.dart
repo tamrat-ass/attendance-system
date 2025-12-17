@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../utils/app_colors.dart';
 import '../models/student.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class StudentsScreen extends StatefulWidget {
   const StudentsScreen({super.key});
@@ -351,6 +352,8 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   Text('Phone: $phone'),
                   Text('Class: $className'),
                   if (gender.isNotEmpty) Text('Gender: $gender'),
+                  if (student['email'] != null && student['email'].toString().isNotEmpty)
+                    Text('Email: ${student['email']}'),
                 ],
               ),
               trailing: PopupMenuButton<String>(
@@ -517,6 +520,7 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
+  late TextEditingController _emailController;
   String? _selectedClass;
   String _selectedGender = 'Male';
   bool _isLoading = false;
@@ -530,6 +534,7 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
     super.initState();
     _nameController = TextEditingController(text: widget.student?.fullName ?? '');
     _phoneController = TextEditingController(text: widget.student?.phone ?? '');
+    _emailController = TextEditingController(text: widget.student?.email ?? '');
     _selectedClass = widget.student?.className;
     _selectedGender = widget.student?.gender ?? 'Male';
     _loadClasses();
@@ -583,6 +588,7 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -594,17 +600,36 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
     });
 
     try {
+      // Test API connection first
+      print('🔍 Testing API connection...');
+      
+      final isConnected = await ApiService.testApiConnection();
+      if (!isConnected) {
+        throw Exception('Cannot connect to server. Please check your internet connection.');
+      }
+      
       final apiService = ApiService();
+      // Validate required fields
+      final email = _emailController.text.trim();
+      if (email.isEmpty) {
+        throw Exception('Email address is required');
+      }
+      if (!RegExp(r'^[\w-\.]+@gmail\.com$').hasMatch(email)) {
+        throw Exception('Please provide a valid @gmail.com email address');
+      }
+
       final student = Student(
         id: widget.student?.id,
         fullName: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         className: _selectedClass ?? '',
-        gender: _selectedGender,
+        gender: _selectedGender ?? 'Male',
+        email: email,
       );
 
       bool success;
       if (widget.student == null) {
+        // Creating new student
         await apiService.createStudent(student);
         success = true;
       } else {
@@ -634,10 +659,22 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
         _isLoading = false;
       });
       
+      // Clean up error message
+      String errorMessage = e.toString().replaceAll('Exception: ', '');
+      if (errorMessage.contains('Network error:')) {
+        errorMessage = 'Network connection failed. Please check your internet and try again.';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: () => _saveStudent(),
+          ),
         ),
       );
     }
@@ -682,6 +719,26 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
                   }
                   if (!RegExp(r'^09\d{8}$').hasMatch(value.trim())) {
                     return 'Phone must be 10 digits starting with 09';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              
+              TextFormField(
+                controller: _emailController,
+                decoration: const InputDecoration(
+                  labelText: 'Email Address *',
+                  border: OutlineInputBorder(),
+                  hintText: 'student@gmail.com',
+                ),
+                keyboardType: TextInputType.emailAddress,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Email address is required';
+                  }
+                  if (!RegExp(r'^[\w-\.]+@gmail\.com$').hasMatch(value.trim())) {
+                    return 'Please enter a valid @gmail.com email address';
                   }
                   return null;
                 },
