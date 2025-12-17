@@ -132,8 +132,14 @@ export async function POST(req: Request) {
     // Try to send registration email (non-blocking)
     let emailSent = false;
     try {
+      const emailApiUrl = `https://mk-attendance.vercel.app/api/notifications/registration`;
       console.log(`🔄 Attempting to send registration email to ${finalEmail}`);
-      const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'https://mk-attendance.vercel.app'}/api/notifications/registration`, {
+      console.log(`📧 Email API URL: ${emailApiUrl}`);
+      console.log(`📧 Student ID: ${studentId}`);
+      console.log(`📧 SMTP_USER: ${process.env.SMTP_USER ? 'Set' : 'NOT SET'}`);
+      console.log(`📧 SMTP_PASS: ${process.env.SMTP_PASS ? 'Set (length: ' + process.env.SMTP_PASS.length + ')' : 'NOT SET'}`);
+      
+      const emailResponse = await fetch(emailApiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -158,6 +164,7 @@ export async function POST(req: Request) {
       }
     } catch (emailError) {
       console.log(`⚠️ Email failed but student created: ${emailError}`);
+      console.error('Full email error:', emailError);
     }
 
     return NextResponse.json({ 
