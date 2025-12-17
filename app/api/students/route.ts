@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import nodemailer from "nodemailer";
 
 // GET ALL STUDENTS with filters, search, pagination
 export async function GET(req: Request) {
@@ -129,38 +130,118 @@ export async function POST(req: Request) {
 
     const studentId = result.insertId;
 
-    // Try to send registration email (non-blocking)
+    // Send registration email directly (non-blocking)
     let emailSent = false;
     try {
-      const emailApiUrl = `https://mk-attendance.vercel.app/api/notifications/registration`;
       console.log(`🔄 Attempting to send registration email to ${finalEmail}`);
-      console.log(`📧 Email API URL: ${emailApiUrl}`);
-      console.log(`📧 Student ID: ${studentId}`);
+      console.log(`�  Student ID: ${studentId}`);
       console.log(`📧 SMTP_USER: ${process.env.SMTP_USER ? 'Set' : 'NOT SET'}`);
       console.log(`📧 SMTP_PASS: ${process.env.SMTP_PASS ? 'Set (length: ' + process.env.SMTP_PASS.length + ')' : 'NOT SET'}`);
       
-      const emailResponse = await fetch(emailApiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      // Check if email is configured
+      if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+        // Create transporter
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+
+        // Generate QR code data
+        const qrData = {
           student_id: studentId,
-          full_name,
-          email: finalEmail,
-          phone,
+          full_name: full_name,
           class: studentClass,
-          gender: finalGender,
-        }),
-      });
-      
-      console.log(`📡 Email API response status: ${emailResponse.status}`);
-      const emailResponseData = await emailResponse.text();
-      console.log(`📡 Email API response: ${emailResponseData}`);
-      
-      if (emailResponse.ok) {
+          phone: phone,
+          timestamp: Date.now()
+        };
+
+        // Create email content
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: linear-gradient(135deg, #6A5ACD, #9370DB); padding: 20px; text-align: center;">
+              <h1 style="color: white; margin: 0;">MK Attendance System</h1>
+              <p style="color: white; margin: 5px 0;">Student Registration Confirmation</p>
+            </div>
+            
+            <div style="padding: 30px; background: #f9f9f9;">
+              <h2 style="color: #333;">Welcome, ${full_name}!</h2>
+              <p style="color: #666; font-size: 16px;">
+                Congratulations! You have been successfully registered in the MK Attendance System.
+              </p>
+              
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3 style="color: #6A5ACD; margin-top: 0;">Your Registration Details:</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Student ID:</td>
+                    <td style="padding: 8px 0; color: #666;">${studentId}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Full Name:</td>
+                    <td style="padding: 8px 0; color: #666;">${full_name}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Class:</td>
+                    <td style="padding: 8px 0; color: #666;">${studentClass}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Phone:</td>
+                    <td style="padding: 8px 0; color: #666;">${phone}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Gender:</td>
+                    <td style="padding: 8px 0; color: #666;">${finalGender}</td>
+                  </tr>
+                </table>
+              </div>
+              
+              <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                <h3 style="color: #6A5ACD; margin-top: 0;">Your Personal QR Code</h3>
+                <p style="color: #666; margin-bottom: 15px;">
+                  Your QR code data: <strong>${JSON.stringify(qrData)}</strong>
+                </p>
+                <p style="color: #666; font-size: 14px;">
+                  <strong>How to use:</strong><br>
+                  • Show this information to your teacher for QR code generation<br>
+                  • Your QR code will be used for attendance tracking<br>
+                  • Keep this email safe for future reference
+                </p>
+              </div>
+              
+              <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+                <p style="margin: 0; color: #1976D2;">
+                  <strong>Important:</strong> Your QR code is unique to you. 
+                  It will be used for attendance tracking in your classes.
+                </p>
+              </div>
+            </div>
+            
+            <div style="background: #333; padding: 20px; text-align: center;">
+              <p style="color: #ccc; margin: 0; font-size: 14px;">
+                © ${new Date().getFullYear()} MK Attendance System. All rights reserved.
+              </p>
+            </div>
+          </div>
+        `;
+
+        // Send email
+        await transporter.sendMail({
+          from: `"MK Attendance System" <${process.env.SMTP_USER}>`,
+          to: finalEmail,
+          subject: "Welcome to MK Attendance System - Your QR Code",
+          html: emailHtml,
+        });
+
         emailSent = true;
         console.log(`✅ Registration email sent to ${finalEmail}`);
       } else {
-        console.log(`❌ Email API failed with status ${emailResponse.status}: ${emailResponseData}`);
+        console.log(`⚠️ Email not configured - SMTP credentials missing`);
       }
     } catch (emailError) {
       console.log(`⚠️ Email failed but student created: ${emailError}`);
