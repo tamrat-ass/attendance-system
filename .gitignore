@@ -32,3 +32,12 @@ Thumbs.db
 # Database
 *.db
 *.sqlite
+
+# APK Files (Flutter builds)
+*.apk
+*.aab
+*.ipa
+
+# Flutter builds
+mk-attendance-flutter/build/
+mk-attendance-flutter/.dart_tool/
