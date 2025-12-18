@@ -230,14 +230,14 @@ export async function POST(req: Request) {
         // Create email content
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #8B0000, #B22222); padding: 20px; text-align: center;">
-              <h1 style="color: white; margin: 0;">MK Attendance System</h1>
-              <p style="color: white; margin: 5px 0;">Student Registration Confirmation</p>
+            <div style="background: linear-gradient(135deg, #8B0000, #B22222); padding: 15px; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 20px;">MK Attendance System</h1>
+              <p style="color: white; margin: 3px 0; font-size: 12px;">Student Registration Confirmation</p>
             </div>
             
             <div style="padding: 30px; background: #f9f9f9;">
-              <h2 style="color: #333;">Welcome, ${full_name}!</h2>
-              <p style="color: #666; font-size: 16px;">
+              <h2 style="color: #333; font-size: 18px;">Welcome, ${full_name}!</h2>
+              <p style="color: #666; font-size: 13px;">
                 Congratulations! You have been successfully registered in the MK Attendance System.
               </p>
               
@@ -271,9 +271,9 @@ export async function POST(req: Request) {
                 <h3 style="color: #8B0000; margin-top: 0;">Your Personal QR Code</h3>
                 
                 ${qrCodeImage ? `
-                  <div style="background: white; padding: 25px; margin: 15px auto; text-align: center; border: 3px solid #000000; border-radius: 10px; max-width: 250px;">
+                  <div style="background: white; padding: 25px; margin: 15px auto; text-align: center; border: 3px solid #8B0000; border-radius: 10px; max-width: 250px;">
                     <img src="${qrCodeImage}" alt="Your QR Code" style="width: 150px; height: 150px; display: block; margin: 0 auto;" />
-                    <p style="color: #000000; font-weight: bold; margin: 15px 0 0 0; font-size: 14px;">Scan this QR code for attendance</p>
+                    <p style="color: #8B0000; font-weight: bold; margin: 15px 0 0 0; font-size: 14px;">Scan this QR code for attendance</p>
                   </div>
                 ` : ''}
                 
@@ -291,7 +291,6 @@ export async function POST(req: Request) {
                      style="color: white; text-decoration: none; font-size: 14px; display: block; margin-top: 8px; background: #cc0000; padding: 8px; border-radius: 5px;">
                     🔔 ➤ Subscribe: youtube.com/@-zemawetibebzmk7905 ⬅
                   </a>
-                  <p style="margin: 8px 0 0 0; font-size: 13px;">🎯 Get tutorials, updates & tech tips! 🎯</p>
                   <p style="margin: 5px 0 0 0; font-size: 12px; background: #990000; padding: 5px; border-radius: 3px;">
                     ⭐ Don't miss our latest videos! ⭐
                   </p>
