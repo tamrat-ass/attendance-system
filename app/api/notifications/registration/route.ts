@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     // Generate VERY SMALL QR code for mobile
     const qrText = JSON.stringify(qrData);
     const encodedText = encodeURIComponent(qrText);
-    const qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodedText}`;
+    const qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=8B0000&data=${encodedText}`;
 
     // Create mobile-first email content
     const emailSubject = "Welcome to MK Attendance System - Your QR Code";
@@ -72,13 +72,9 @@ export async function POST(req: Request) {
           body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
           .container { max-width: 100%; margin: 0 auto; background: white; }
           .qr-box { 
-            background: white; 
-            border: 2px solid #dc3545; 
-            border-radius: 8px; 
-            padding: 40px; 
+            background: transparent; 
+            padding: 20px; 
             margin: 15px auto; 
-            width: 250px; 
-            height: 200px; 
             text-align: center;
           }
           .qr-img { 
@@ -89,9 +85,7 @@ export async function POST(req: Request) {
           }
           @media only screen and (max-width: 480px) {
             .qr-box { 
-              width: 220px !important; 
-              height: 180px !important; 
-              padding: 30px !important; 
+              padding: 15px !important; 
             }
             .qr-img { 
               width: 70px !important; 
@@ -149,7 +143,7 @@ export async function POST(req: Request) {
               <!-- VERY SMALL QR Container for Mobile -->
               <div class="qr-box">
                 <img src="${qrCodeImage}" alt="Your QR Code" class="qr-img" />
-                <p style="color: #dc3545; font-weight: bold; margin: 8px 0 0 0; font-size: 11px;">
+                <p style="color: #8B0000; font-weight: bold; margin: 8px 0 0 0; font-size: 11px;">
                   Scan this QR code for attendance
                 </p>
               </div>
@@ -160,6 +154,16 @@ export async function POST(req: Request) {
                 • Show it to your teacher for attendance<br>
                 • Your QR code works every day
               </p>
+              
+              <!-- YouTube Channel Promotion -->
+              <div style="background: #ff0000; color: white; padding: 12px; border-radius: 6px; margin: 15px 5px; text-align: center;">
+                <p style="margin: 0; font-size: 13px; font-weight: bold;">📺 Follow us on YouTube!</p>
+                <a href="https://youtube.com/@-zemawetibebzmk7905" 
+                   style="color: white; text-decoration: none; font-size: 12px; display: block; margin-top: 5px;">
+                  🔔 Subscribe: youtube.com/@-zemawetibebzmk7905
+                </a>
+                <p style="margin: 5px 0 0 0; font-size: 11px;">Get tutorials, updates & tech tips!</p>
+              </div>
             </div>
             
             <!-- Important Note -->
