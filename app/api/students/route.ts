@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
+import QRCode from "qrcode";
 
 // GET ALL STUDENTS with filters, search, pagination
 export async function GET(req: Request) {
@@ -193,6 +194,22 @@ export async function POST(req: Request) {
         
         console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
         
+        // Generate QR code image as base64
+        let qrCodeImage = '';
+        try {
+          qrCodeImage = await QRCode.toDataURL(JSON.stringify(qrData), {
+            width: 300,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            }
+          });
+          console.log(`📧 QR code image generated successfully`);
+        } catch (qrError) {
+          console.error('Failed to generate QR code image:', qrError);
+        }
+        
         // Update the student record with complete QR data including student_id
         try {
           await db.query(
@@ -246,9 +263,17 @@ export async function POST(req: Request) {
               
               <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
                 <h3 style="color: #8B0000; margin-top: 0;">Your Personal QR Code</h3>
-                <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #8B0000;">
-                  <h4 style="color: #8B0000; margin-top: 0;">QR Code Data:</h4>
-                  <table style="width: 100%; border-collapse: collapse; font-family: monospace;">
+                
+                ${qrCodeImage ? `
+                  <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #8B0000;">
+                    <img src="${qrCodeImage}" alt="Your QR Code" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 8px;" />
+                    <p style="color: #8B0000; font-weight: bold; margin: 10px 0;">Scan this QR code for attendance</p>
+                  </div>
+                ` : ''}
+                
+                <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #8B0000;">
+                  <h4 style="color: #8B0000; margin-top: 0;">Student Information:</h4>
+                  <table style="width: 100%; border-collapse: collapse;">
                     <tr>
                       <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Student ID:</td>
                       <td style="padding: 5px; color: #666; text-align: left;">${studentId}</td>
@@ -266,13 +291,11 @@ export async function POST(req: Request) {
                       <td style="padding: 5px; color: #666; text-align: left;">${phone}</td>
                     </tr>
                   </table>
-                  <div style="background: #fff; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; word-break: break-all; border: 1px solid #ddd;">
-                    ${JSON.stringify(qrData)}
-                  </div>
                 </div>
+                
                 <p style="color: #666; font-size: 14px;">
                   <strong>How to use:</strong><br>
-                  • Show this information to your coordinator for QR code generation<br>
+                  • Show this QR code to your coordinator for attendance<br>
                   • Your QR code will be used for attendance tracking<br>
                   • Keep this email safe for future reference
                 </p>
