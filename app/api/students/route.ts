@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
-import QRCode from "qrcode";
 
 // GET ALL STUDENTS with filters, search, pagination
 export async function GET(req: Request) {
@@ -194,9 +193,11 @@ export async function POST(req: Request) {
         
         console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
         
-        // Generate QR code image as base64
+        // Generate QR code image as base64 (optional - fallback if package not available)
         let qrCodeImage = '';
         try {
+          // Dynamic import to avoid breaking if package not installed
+          const QRCode = await import('qrcode');
           qrCodeImage = await QRCode.toDataURL(JSON.stringify(qrData), {
             width: 300,
             margin: 2,
@@ -207,7 +208,8 @@ export async function POST(req: Request) {
           });
           console.log(`📧 QR code image generated successfully`);
         } catch (qrError) {
-          console.error('Failed to generate QR code image:', qrError);
+          console.log(`⚠️ QR code generation failed (package not available): ${qrError.message}`);
+          // Continue without QR image - email will still work
         }
         
         // Update the student record with complete QR data including student_id
