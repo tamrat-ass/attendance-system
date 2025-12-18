@@ -195,12 +195,12 @@ class _QRConfirmationScreenState extends State<QRConfirmationScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle, color: Colors.green, size: 20),
-                                const SizedBox(width: 8),
+                                Icon(Icons.check_circle, color: Colors.transparent, size: 0),
+                                const SizedBox(width: 0),
                                 const Text(
                                   '  ',
                                   style: TextStyle(
-                                    color: Colors.green,
+                                    color: Colors.transparent,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                   ),

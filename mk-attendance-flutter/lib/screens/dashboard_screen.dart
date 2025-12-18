@@ -264,6 +264,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
     }
   }
+
+  void _navigateToTab(BuildContext context, int index) {
+    // Get the current user to determine available tabs
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    final screens = _getScreensForUser(user);
+    
+    // Ensure the index is within bounds
+    if (index >= 0 && index < screens.length) {
+      setState(() {
+        _currentIndex = index;
+      });
+      print('Successfully navigated to tab $index (${_getTabName(index)})');
+    } else {
+      print('Error: Tab index $index is out of bounds. Available tabs: 0-${screens.length - 1}');
+    }
+  }
+  
+  String _getTabName(int index) {
+    switch (index) {
+      case 0: return 'Home';
+      case 1: return 'Attendance';
+      case 2: return 'Students';
+      case 3: return 'Users';
+      default: return 'Unknown';
+    }
+  }
 }
 
 class _HomeScreen extends StatelessWidget {
@@ -375,23 +402,33 @@ class _HomeScreen extends StatelessWidget {
             
             const SizedBox(height: 16), // Reduced from 24
             
-            // Quick Actions
-            Text(
-              'Quick Actions',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark,
-              ),
+            // Quick Actions Header
+            Row(
+              children: [
+                Icon(
+                  Icons.flash_on,
+                  color: AppColors.primaryDark,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Quick Actions',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12), // Reduced from 16
+            const SizedBox(height: 16),
             
             GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: 2,
-              crossAxisSpacing: 12, // Increased for better spacing
-              mainAxisSpacing: 12, // Increased for better spacing
-              childAspectRatio: 1.8, // Reduced to make cards taller and more prominent
+              crossAxisSpacing: 14, // Better spacing for management cards
+              mainAxisSpacing: 14, // Better spacing for management cards
+              childAspectRatio: 1.6, // Optimized for better card visibility
               children: _buildQuickActionCards(context, user?.role),
             ),
             
@@ -464,12 +501,16 @@ class _HomeScreen extends StatelessWidget {
     final user = authProvider.user;
     
     final actions = <Widget>[
+      // Core Attendance Actions
       _buildQuickActionCard(
         context,
         'Mark Attendance',
         Icons.check_circle_outline,
         AppColors.primary,
-        () => _navigateToTab(context, 1),
+        () {
+          final dashboardState = context.findAncestorStateOfType<_DashboardScreenState>();
+          dashboardState?._navigateToTab(context, 1);
+        },
       ),
       _buildQuickActionCard(
         context,
@@ -483,13 +524,6 @@ class _HomeScreen extends StatelessWidget {
       ),
       _buildQuickActionCard(
         context,
-        'Manage Students',
-        Icons.people_outline,
-        Colors.green,
-        () => _navigateToTab(context, 2),
-      ),
-      _buildQuickActionCard(
-        context,
         'Student QR Codes',
         Icons.qr_code_2,
         Colors.deepPurple,
@@ -498,48 +532,16 @@ class _HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (context) => const StudentQRScreen()),
         ),
       ),
-    ];
-
-    // Only add Attendance Summary and View Web for admin and manager users
-    if (user?.role?.toLowerCase() == 'admin' || user?.role?.toLowerCase() == 'manager') {
-      actions.insert(1, _buildAttendanceSummaryCard(context)); // Add after Mark Attendance
-      actions.add(_buildQuickActionCard(
+      
+      // More Options Card
+      _buildQuickActionCard(
         context,
-        'View Web',
-        Icons.web,
-        Colors.blue,
-        () => _openWebVersion(context),
-      ));
-    }
-
-    // Only add Manage Classes for admin and manager users
-    if (user?.role?.toLowerCase() == 'admin' || user?.role?.toLowerCase() == 'manager') {
-      actions.insert(3, // Insert after Attendance Summary and Manage Students
-        _buildQuickActionCard(
-          context,
-          'Manage Classes',
-          Icons.class_outlined,
-          Colors.orange,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ClassManagementScreen()),
-          ),
-        ),
-      );
-    }
-
-    // Only add Manage Users for admin users
-    if (user?.canManageUsers == true) {
-      actions.add(
-        _buildQuickActionCard(
-          context,
-          'Manage Users',
-          Icons.admin_panel_settings,
-          Colors.purple,
-          () => _navigateToTab(context, 3), // Navigate to users tab
-        ),
-      );
-    }
+        'More',
+        Icons.more_horiz,
+        Colors.grey[700]!,
+        () => _showMoreOptionsDialog(context),
+      ),
+    ];
 
 
 
@@ -553,49 +555,81 @@ class _HomeScreen extends StatelessWidget {
     Color color,
     VoidCallback onTap,
   ) {
+    // Check if this is a management card for special styling
+    bool isManagementCard = title.contains('Manage');
+    
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16), // Increased padding for better touch area
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16), // Larger radius for modern look
+          borderRadius: BorderRadius.circular(18), // Slightly larger radius
+          border: isManagementCard 
+              ? Border.all(color: color.withOpacity(0.3), width: 1.5)
+              : null,
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.15), // Slightly more visible shadow
-              blurRadius: 8, // Larger shadow for depth
-              offset: const Offset(0, 3), // More prominent shadow
+              color: color.withOpacity(isManagementCard ? 0.2 : 0.15),
+              blurRadius: isManagementCard ? 12 : 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column( // Back to Column layout for better vertical space usage
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(12), // Larger icon container
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                gradient: isManagementCard 
+                    ? LinearGradient(
+                        colors: [color.withOpacity(0.15), color.withOpacity(0.08)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isManagementCard ? null : color.withOpacity(0.1),
                 shape: BoxShape.circle,
+                boxShadow: isManagementCard ? [
+                  BoxShadow(
+                    color: color.withOpacity(0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ] : null,
               ),
               child: Icon(
                 icon,
-                size: 28, // Larger icon for better visibility
+                size: isManagementCard ? 32 : 28,
                 color: color,
               ),
             ),
-            const SizedBox(height: 12), // More space between icon and text
+            const SizedBox(height: 12),
             Text(
               title,
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 14, // Larger text for better readability
-                fontWeight: FontWeight.w600,
+                fontSize: isManagementCard ? 15 : 14,
+                fontWeight: isManagementCard ? FontWeight.w700 : FontWeight.w600,
                 color: Colors.grey[800],
-                height: 1.2, // Better line height for readability
+                height: 1.2,
               ),
             ),
+            if (isManagementCard) ...[
+              const SizedBox(height: 4),
+              Container(
+                width: 30,
+                height: 2,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -660,46 +694,53 @@ class _HomeScreen extends StatelessWidget {
     String value,
     Color color,
   ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+    return Builder(
+      builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 20,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[600] : AppColors.darkBlueMedium,
+                      ),
+                    ),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? null : AppColors.darkBlue,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -712,7 +753,7 @@ class _HomeScreen extends StatelessWidget {
       builder: (context) {
         // Get theme-aware text color
         final isDark = Theme.of(context).brightness == Brightness.dark;
-        final textColor = isDark ? Colors.white : Colors.black87;
+        final textColor = isDark ? Colors.white : AppColors.darkBlue;
         
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -747,11 +788,247 @@ class _HomeScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToTab(BuildContext context, int index) {
+
+
+  void _navigateToAttendanceWithPermission(BuildContext context) {
+    // Navigate to attendance tab (index 1)
     final dashboardState = context.findAncestorStateOfType<_DashboardScreenState>();
     dashboardState?.setState(() {
-      dashboardState._currentIndex = index;
+      dashboardState._currentIndex = 1;
     });
+    
+    // Show a helpful message about the Mark All Permission feature
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.assignment_turned_in, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Navigate to Attendance → Select class → Use "Mark All Permission" button',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.teal,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAttendanceWithAbsent(BuildContext context) {
+    // Navigate to attendance tab (index 1)
+    final dashboardState = context.findAncestorStateOfType<_DashboardScreenState>();
+    dashboardState?.setState(() {
+      dashboardState._currentIndex = 1;
+    });
+    
+    // Show a helpful message about the Mark All Absent feature
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.cancel, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Navigate to Attendance → Select class → Use "Mark All Absent" button',
+                style: TextStyle(fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
+  void _showMoreOptionsDialog(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.grey[700]!, Colors.grey[800]!],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.more_horiz, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'More Options',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Options List
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Manage Classes
+                    _buildMoreOptionItem(
+                      context,
+                      'Manage Classes',
+                      Icons.class_outlined,
+                      Colors.orange,
+                      () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ClassManagementScreen()),
+                        );
+                      },
+                    ),
+                    
+                    // Attendance Summary (admin/manager only)
+                    if (user?.role?.toLowerCase() == 'admin' || user?.role?.toLowerCase() == 'manager')
+                      _buildMoreOptionItem(
+                        context,
+                        'Attendance Summary',
+                        Icons.analytics_outlined,
+                        Colors.indigo,
+                        () {
+                          Navigator.pop(context);
+                          _showAttendanceSummaryDialog(context);
+                        },
+                      ),
+                    
+
+                    
+                    // View Web Version (admin/manager only)
+                    if (user?.role?.toLowerCase() == 'admin' || user?.role?.toLowerCase() == 'manager')
+                      _buildMoreOptionItem(
+                        context,
+                        'View Web Version',
+                        Icons.web,
+                        Colors.blue,
+                        () {
+                          Navigator.pop(context);
+                          _openWebVersion(context);
+                        },
+                      ),
+
+                  ],
+                ),
+              ),
+              
+              // Close Button
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.grey[100],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoreOptionItem(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        onTap: onTap,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          color: Colors.grey[400],
+          size: 16,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        tileColor: Colors.grey[50],
+      ),
+    );
   }
 
   void _navigateToSettings(BuildContext context) {

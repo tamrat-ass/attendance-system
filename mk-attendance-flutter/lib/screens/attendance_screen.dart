@@ -638,18 +638,32 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       return;
     }
     
+    if (_selectedClass == null) {
+      _showMessage('Please select a class first', Colors.red);
+      return;
+    }
+    
     final studentProvider = Provider.of<StudentProvider>(context, listen: false);
     
-    // Get all students from ALL classes
-    final allStudents = studentProvider.students;
+    // Get students from selected class only
+    final classStudents = _selectedClass == 'All Classes' 
+        ? studentProvider.students 
+        : studentProvider.getStudentsByClass(_selectedClass!);
     
-    // Find unmarked students (not locked and not in current status)
-    final unmarkedStudents = allStudents
-        .where((student) => !_lockedStudents.contains(student.id) && !_studentStatus.containsKey(student.id))
-        .toList();
+    // Find ONLY unmarked students (no saved attendance AND no current status)
+    final unmarkedStudents = classStudents
+        .where((student) => 
+            !_lockedStudents.contains(student.id) && // No saved attendance
+            !_studentStatus.containsKey(student.id)   // No current status
+        ).toList();
     
     if (unmarkedStudents.isEmpty) {
-      _showMessage('All students already have attendance marked', Colors.orange);
+      _showMessage(
+        _selectedClass == 'All Classes' 
+            ? 'All students already have attendance marked'
+            : 'All students in $_selectedClass already have attendance marked',
+        Colors.orange
+      );
       return;
     }
     
@@ -663,7 +677,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       _studentStatus.addAll(newStatus);
     });
     
-    _showMessage('✅ Marked ${unmarkedStudents.length} students as permission', Colors.blue);
+    _showMessage(
+      '✅ Marked ${unmarkedStudents.length} unmarked students as permission\n'
+      '(Existing attendance records were not changed)',
+      Colors.blue
+    );
     
     // Auto-save after marking
     await Future.delayed(const Duration(milliseconds: 500));
@@ -714,6 +732,72 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
   
   bool _canMarkAllPermission() {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userRole = authProvider.user?.role?.toLowerCase();
+    return userRole == 'admin' || userRole == 'manager';
+  }
+
+  Future<void> _markAllAbsent() async {
+    // CHECK PERMISSION: Only managers and admins can mark all absent
+    if (!_canMarkAllAbsent()) {
+      _showMessage(
+        '🔒 Only managers and admins can mark all students as absent',
+        Colors.red,
+      );
+      return;
+    }
+    
+    if (_selectedClass == null) {
+      _showMessage('Please select a class first', Colors.red);
+      return;
+    }
+    
+    final studentProvider = Provider.of<StudentProvider>(context, listen: false);
+    
+    // Get students from selected class only
+    final classStudents = _selectedClass == 'All Classes' 
+        ? studentProvider.students 
+        : studentProvider.getStudentsByClass(_selectedClass!);
+    
+    // Find ONLY unmarked students (no saved attendance AND no current status)
+    final unmarkedStudents = classStudents
+        .where((student) => 
+            !_lockedStudents.contains(student.id) && // No saved attendance
+            !_studentStatus.containsKey(student.id)   // No current status
+        ).toList();
+    
+    if (unmarkedStudents.isEmpty) {
+      _showMessage(
+        _selectedClass == 'All Classes' 
+            ? 'All students already have attendance marked'
+            : 'All students in $_selectedClass already have attendance marked',
+        Colors.orange
+      );
+      return;
+    }
+    
+    // Mark all unmarked students as absent
+    final newStatus = <int, String>{};
+    for (final student in unmarkedStudents) {
+      newStatus[student.id!] = 'absent';
+    }
+    
+    setState(() {
+      _studentStatus.addAll(newStatus);
+    });
+    
+    _showMessage(
+      '✅ Marked ${unmarkedStudents.length} unmarked students as absent\n'
+      '(Existing attendance records were not changed)',
+      Colors.red
+    );
+    
+    // Auto-save after marking
+    await Future.delayed(const Duration(milliseconds: 500));
+    await _saveAttendance();
+  }
+
+  bool _canMarkAllAbsent() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userRole = authProvider.user?.role?.toLowerCase();
     return userRole == 'admin' || userRole == 'manager';
@@ -1012,14 +1096,47 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 if (_canMarkAllPermission())
                   Expanded(
                     flex: 2,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: _markAllPermission,
-                      icon: const Icon(Icons.assignment_turned_in, size: 18),
-                      label: const Text('Mark All Permission', style: TextStyle(fontSize: 12)),
+                      child: const Text(
+                        'Mark All Permission', 
+                        style: TextStyle(fontSize: 10),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                
+                // Add spacing if Mark All Permission is shown
+                if (_canMarkAllPermission())
+                  const SizedBox(width: 8),
+                
+                // PERMISSION CHECK: Only show Mark All Absent for managers and admins
+                if (_canMarkAllAbsent())
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: _markAllAbsent,
+                      child: const Text(
+                        'Mark All Absent', 
+                        style: TextStyle(fontSize: 10),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -1029,14 +1146,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton.icon(
+                  child: ElevatedButton(
                     onPressed: _saveAttendance,
-                    icon: const Icon(Icons.save, size: 18),
-                    label: const Text('Save Attendance', style: TextStyle(fontSize: 12)),
+                    child: const Text(
+                      'Save Attendance', 
+                      style: TextStyle(fontSize: 10),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -1245,9 +1367,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                     children: [
                                       Text(
                                         student.fullName,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
+                                          color: isDarkTheme ? null : AppColors.darkBlue,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -1255,7 +1378,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                         'ID: ${student.id} • ${student.phone}',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: isDarkTheme ? Colors.grey.shade400 : Colors.grey.shade600,
+                                          color: isDarkTheme ? Colors.grey.shade400 : AppColors.darkBlueMedium,
                                         ),
                                       ),
                                       if (_searchQuery.isNotEmpty) ...[
