@@ -246,8 +246,29 @@ export async function POST(req: Request) {
               
               <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
                 <h3 style="color: #8B0000; margin-top: 0;">Your Personal QR Code</h3>
-                <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0; font-family: monospace; word-break: break-all;">
-                  ${JSON.stringify(qrData, null, 2)}
+                <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #8B0000;">
+                  <h4 style="color: #8B0000; margin-top: 0;">QR Code Data:</h4>
+                  <table style="width: 100%; border-collapse: collapse; font-family: monospace;">
+                    <tr>
+                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Student ID:</td>
+                      <td style="padding: 5px; color: #666; text-align: left;">${studentId}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Name:</td>
+                      <td style="padding: 5px; color: #666; text-align: left;">${full_name}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Class:</td>
+                      <td style="padding: 5px; color: #666; text-align: left;">${studentClass}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Phone:</td>
+                      <td style="padding: 5px; color: #666; text-align: left;">${phone}</td>
+                    </tr>
+                  </table>
+                  <div style="background: #fff; padding: 10px; margin-top: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; word-break: break-all; border: 1px solid #ddd;">
+                    ${JSON.stringify(qrData)}
+                  </div>
                 </div>
                 <p style="color: #666; font-size: 14px;">
                   <strong>How to use:</strong><br>
