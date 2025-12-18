@@ -209,7 +209,7 @@ export async function POST(req: Request) {
           // Use QR Server API to generate QR code
           const qrText = JSON.stringify(qrData);
           const encodedText = encodeURIComponent(qrText);
-          qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedText}`;
+          qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=8B0000&data=${encodedText}`;
           console.log(`📧 QR code URL generated: ${qrCodeImage}`);
         } catch (qrError) {
           console.log(`⚠️ QR code generation failed: ${qrError.message}`);
@@ -271,8 +271,8 @@ export async function POST(req: Request) {
                 <h3 style="color: #8B0000; margin-top: 0;">Your Personal QR Code</h3>
                 
                 ${qrCodeImage ? `
-                  <div style="background: #f9f9f9; padding: 20px; border-radius: 8px; margin: 15px 0; border: 2px solid #8B0000;">
-                    <img src="${qrCodeImage}" alt="Your QR Code" style="max-width: 300px; height: auto; border: 1px solid #ddd; border-radius: 8px;" />
+                  <div style="background: transparent; padding: 20px; margin: 15px 0; text-align: center;">
+                    <img src="${qrCodeImage}" alt="Your QR Code" style="width: 80px; height: 80px;" />
                     <p style="color: #8B0000; font-weight: bold; margin: 10px 0;">Scan this QR code for attendance</p>
                   </div>
                 ` : ''}
@@ -283,6 +283,16 @@ export async function POST(req: Request) {
                   • Your QR code will be used for attendance tracking<br>
                   • Keep this email safe for future reference
                 </p>
+                
+                <!-- YouTube Channel Promotion -->
+                <div style="background: #ff0000; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                  <p style="margin: 0; font-size: 16px; font-weight: bold;">📺 Follow us on YouTube!</p>
+                  <a href="https://youtube.com/@-zemawetibebzmk7905" 
+                     style="color: white; text-decoration: none; font-size: 14px; display: block; margin-top: 8px;">
+                    🔔 Subscribe: youtube.com/@-zemawetibebzmk7905
+                  </a>
+                  <p style="margin: 8px 0 0 0; font-size: 13px;">Get tutorials, updates & tech tips!</p>
+                </div>
               </div>
               
               <div style="background: #e8f4fd; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
