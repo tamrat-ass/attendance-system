@@ -209,7 +209,7 @@ export async function POST(req: Request) {
           // Use QR Server API to generate QR code
           const qrText = JSON.stringify(qrData);
           const encodedText = encodeURIComponent(qrText);
-          qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=8B0000&data=${encodedText}`;
+          qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=000000&data=${encodedText}`;
           console.log(`📧 QR code URL generated: ${qrCodeImage}`);
         } catch (qrError) {
           console.log(`⚠️ QR code generation failed: ${qrError.message}`);
@@ -271,9 +271,9 @@ export async function POST(req: Request) {
                 <h3 style="color: #8B0000; margin-top: 0;">Your Personal QR Code</h3>
                 
                 ${qrCodeImage ? `
-                  <div style="background: transparent; padding: 20px; margin: 15px 0; text-align: center;">
-                    <img src="${qrCodeImage}" alt="Your QR Code" style="width: 80px; height: 80px;" />
-                    <p style="color: #8B0000; font-weight: bold; margin: 10px 0;">Scan this QR code for attendance</p>
+                  <div style="background: white; padding: 25px; margin: 15px auto; text-align: center; border: 3px solid #000000; border-radius: 10px; max-width: 250px;">
+                    <img src="${qrCodeImage}" alt="Your QR Code" style="width: 150px; height: 150px; display: block; margin: 0 auto;" />
+                    <p style="color: #000000; font-weight: bold; margin: 15px 0 0 0; font-size: 14px;">Scan this QR code for attendance</p>
                   </div>
                 ` : ''}
                 
@@ -286,10 +286,22 @@ export async function POST(req: Request) {
                 
                 <!-- YouTube Channel Promotion -->
                 <div style="background: #ff0000; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
+                  <style>
+                    @keyframes bellRing {
+                      0%, 50%, 100% { transform: rotate(0deg); }
+                      10%, 30% { transform: rotate(-10deg); }
+                      20%, 40% { transform: rotate(10deg); }
+                    }
+                    .animated-bell {
+                      display: inline-block;
+                      animation: bellRing 2s infinite;
+                      font-size: 18px;
+                    }
+                  </style>
                   <p style="margin: 0; font-size: 16px; font-weight: bold;">📺 Follow us on YouTube!</p>
                   <a href="https://youtube.com/@-zemawetibebzmk7905" 
                      style="color: white; text-decoration: none; font-size: 14px; display: block; margin-top: 8px;">
-                    🔔 Subscribe: youtube.com/@-zemawetibebzmk7905
+                    <span class="animated-bell">🔔</span> Subscribe: youtube.com/@-zemawetibebzmk7905
                   </a>
                   <p style="margin: 8px 0 0 0; font-size: 13px;">Get tutorials, updates & tech tips!</p>
                 </div>
