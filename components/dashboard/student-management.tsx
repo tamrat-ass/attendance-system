@@ -36,6 +36,7 @@ export default function StudentManagement() {
   const [bulkFile, setBulkFile] = useState<File | null>(null);
   const [bulkError, setBulkError] = useState('');
   const [bulkSuccess, setBulkSuccess] = useState('');
+  const [sendEmails, setSendEmails] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [newClassName, setNewClassName] = useState('');
   const [classError, setClassError] = useState('');
@@ -362,11 +363,11 @@ export default function StudentManagement() {
     try {
       // Create sample data for Excel template
       const templateData = [
-        ['full_name', 'phone', 'gender', 'class'],
-        ['ታምራት አሜሪ', '0937383899', 'Male', 'አስተባበሪ'],
-        ['Sample Student', '0912345678', 'Female', 'Grade 1'],
-        ['John Doe', '0923456789', 'Male', 'Grade 2'],
-        ['Jane Smith', '0934567890', 'Female', 'Grade 3']
+        ['full_name', 'phone', 'gender', 'class', 'email'],
+        ['ታምራት አሜሪ', '0937383899', 'Male', 'አስተባበሪ', 'tamrat.ameri@gmail.com'],
+        ['Sample Student', '0912345678', 'Female', 'Grade 1', 'sample.student@gmail.com'],
+        ['John Doe', '0923456789', 'Male', 'Grade 2', 'john.doe@gmail.com'],
+        ['Jane Smith', '0934567890', 'Female', 'Grade 3', 'jane.smith@gmail.com']
       ];
 
       // Create workbook and worksheet
@@ -378,7 +379,8 @@ export default function StudentManagement() {
         { width: 20 }, // full_name
         { width: 15 }, // phone
         { width: 10 }, // gender
-        { width: 15 }  // class
+        { width: 15 }, // class
+        { width: 25 }  // email
       ];
       
       // Style the header row
@@ -389,7 +391,7 @@ export default function StudentManagement() {
       };
       
       // Apply header styling
-      ['A1', 'B1', 'C1', 'D1'].forEach(cell => {
+      ['A1', 'B1', 'C1', 'D1', 'E1'].forEach(cell => {
         if (worksheet[cell]) {
           worksheet[cell].s = headerStyle;
         }
@@ -537,7 +539,7 @@ export default function StudentManagement() {
             console.log('📊 Excel headers found:', headers);
             
             // Check required columns (flexible matching)
-            const requiredColumns = ['full_name', 'phone', 'gender', 'class'];
+            const requiredColumns = ['full_name', 'phone', 'gender', 'class', 'email'];
             const headerMap: {[key: string]: number} = {};
             
             // Map headers to column indices
@@ -551,7 +553,7 @@ export default function StudentManagement() {
             const missingColumns = requiredColumns.filter(col => !(col in headerMap));
             
             if (missingColumns.length > 0) {
-              setBulkError(`❌ Missing required columns: ${missingColumns.join(', ')}\n\n✅ Required columns (exact names):\n• full_name\n• phone\n• gender\n• class\n\n📋 Found headers: ${headers.join(', ')}\n\n💡 Make sure column names match exactly (case-sensitive)`);
+              setBulkError(`❌ Missing required columns: ${missingColumns.join(', ')}\n\n✅ Required columns (exact names):\n• full_name\n• phone\n• gender\n• class\n• email\n\n📋 Found headers: ${headers.join(', ')}\n\n💡 Make sure column names match exactly (case-sensitive)`);
               setLoading(false);
               return;
             }
@@ -569,7 +571,8 @@ export default function StudentManagement() {
                   full_name: (row[headerMap.full_name] || '').toString().trim(),
                   phone: (row[headerMap.phone] || '').toString().trim(),
                   gender: (row[headerMap.gender] || 'male').toString().trim(),
-                  class: (row[headerMap.class] || '').toString().trim()
+                  class: (row[headerMap.class] || '').toString().trim(),
+                  email: (row[headerMap.email] || '').toString().trim()
                 };
                 
                 // Validate required fields
@@ -583,6 +586,16 @@ export default function StudentManagement() {
                 }
                 if (!studentData.class) {
                   errors.push(`Row ${i + 1}: Missing class`);
+                  continue;
+                }
+                if (!studentData.email) {
+                  errors.push(`Row ${i + 1}: Missing email address`);
+                  continue;
+                }
+                
+                // Validate email format - must be @gmail.com
+                if (!/^[\w-\.]+@gmail\.com$/.test(studentData.email)) {
+                  errors.push(`Row ${i + 1}: Invalid email "${studentData.email}" (must be @gmail.com)`);
                   continue;
                 }
                 
@@ -708,7 +721,7 @@ export default function StudentManagement() {
             console.log('📄 CSV headers found:', headers);
             
             // Check required columns with flexible matching
-            const requiredColumns = ['full_name', 'phone', 'gender', 'class'];
+            const requiredColumns = ['full_name', 'phone', 'gender', 'class', 'email'];
             const headerMap: {[key: string]: number} = {};
             
             // Map headers to column indices (allow some flexibility)
@@ -722,12 +735,13 @@ export default function StudentManagement() {
               if (header.includes('phone') || header.includes('mobile')) headerMap['phone'] = index;
               if (header.includes('gender') || header.includes('sex')) headerMap['gender'] = index;
               if (header.includes('class') || header.includes('grade')) headerMap['class'] = index;
+              if (header.includes('email') || header.includes('mail')) headerMap['email'] = index;
             });
             
             const missingColumns = requiredColumns.filter(col => !(col in headerMap));
             
             if (missingColumns.length > 0) {
-              setBulkError(`❌ Missing required columns: ${missingColumns.join(', ')}\n\n✅ Required columns (exact names):\n• full_name\n• phone\n• gender\n• class\n\n📋 Found headers: ${headers.join(', ')}\n\n💡 Make sure column names match exactly`);
+              setBulkError(`❌ Missing required columns: ${missingColumns.join(', ')}\n\n✅ Required columns (exact names):\n• full_name\n• phone\n• gender\n• class\n• email\n\n📋 Found headers: ${headers.join(', ')}\n\n💡 Make sure column names match exactly`);
               setLoading(false);
               return;
             }
@@ -753,7 +767,8 @@ export default function StudentManagement() {
                   full_name: (values[headerMap.full_name] || '').trim(),
                   phone: (values[headerMap.phone] || '').trim(),
                   gender: (values[headerMap.gender] || 'male').trim(),
-                  class: (values[headerMap.class] || '').trim()
+                  class: (values[headerMap.class] || '').trim(),
+                  email: (values[headerMap.email] || '').trim()
                 };
                 
                 // Validate required fields
@@ -767,6 +782,16 @@ export default function StudentManagement() {
                 }
                 if (!studentData.class) {
                   errors.push(`Row ${i + 1}: Missing class`);
+                  continue;
+                }
+                if (!studentData.email) {
+                  errors.push(`Row ${i + 1}: Missing email address`);
+                  continue;
+                }
+                
+                // Validate email format - must be @gmail.com
+                if (!/^[\w-\.]+@gmail\.com$/.test(studentData.email)) {
+                  errors.push(`Row ${i + 1}: Invalid email "${studentData.email}" (must be @gmail.com)`);
                   continue;
                 }
                 
@@ -803,7 +828,7 @@ export default function StudentManagement() {
             }
             
             if (studentsToAdd.length === 0) {
-              setBulkError('❌ No valid student data found in CSV file\n\n💡 Make sure your CSV file has:\n• Proper column headers (full_name, phone, gender, class)\n• At least one row with complete student data');
+              setBulkError('❌ No valid student data found in CSV file\n\n💡 Make sure your CSV file has:\n• Proper column headers (full_name, phone, gender, class, email)\n• At least one row with complete student data');
               setLoading(false);
               return;
             }
@@ -846,7 +871,10 @@ export default function StudentManagement() {
           setBulkSuccess(`📤 Processing ${studentsToAdd.length} students... Please wait.`);
         }
 
-        const response = await fetch('/api/students/bulk', {
+        // Choose API endpoint based on email option
+        const apiEndpoint = sendEmails ? '/api/students/bulk-with-email' : '/api/students/bulk';
+        
+        const response = await fetch(apiEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ students: studentsToAdd })
@@ -865,6 +893,18 @@ export default function StudentManagement() {
           
           if (summary.skipped > 0) {
             successMessage += `• Duplicates skipped: ${summary.skipped}\n`;
+          }
+          
+          // Add email results if using email API
+          if (sendEmails && summary.emailsSent !== undefined) {
+            successMessage += `\n📧 Email Results:\n`;
+            successMessage += `• Emails sent: ${summary.emailsSent}\n`;
+            if (summary.emailsFailed > 0) {
+              successMessage += `• Emails failed: ${summary.emailsFailed}\n`;
+            }
+          }
+          
+          if (summary.skipped > 0) {
             successMessage += `\n💡 Duplicates are students with the same name and phone number`;
           }
           
@@ -1480,7 +1520,7 @@ export default function StudentManagement() {
             <CardHeader>
               <CardTitle>Bulk Upload Students</CardTitle>
               <CardDescription>
-                Upload multiple students at once using a CSV file
+                Upload multiple students at once using a CSV/Excel file with automatic email notifications and QR code generation
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1506,7 +1546,7 @@ export default function StudentManagement() {
                       Get a sample Excel file with the correct format and sample data
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      ✅ Includes: full_name, phone, gender, class columns with Amharic examples
+                      ✅ Includes: full_name, phone, gender, class, email columns with sample data
                     </p>
                   </div>
                   <Button onClick={downloadTemplate} variant="outline">
@@ -1544,6 +1584,26 @@ export default function StudentManagement() {
                     )}
                     <p className="text-xs text-muted-foreground">
                       💡 Supported formats: .xlsx (Excel), .xls (Excel), .csv (UTF-8)
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="sendEmails"
+                        checked={sendEmails}
+                        onChange={(e) => setSendEmails(e.target.checked)}
+                        className="rounded border-gray-300"
+                      />
+                      <Label htmlFor="sendEmails" className="text-sm font-medium">
+                        📧 Send registration emails with QR codes
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {sendEmails 
+                        ? "✅ Each student will receive an email with their QR code and registration details" 
+                        : "⚠️ Students will be added without email notifications (email column still required)"}
                     </p>
                   </div>
 
