@@ -193,22 +193,16 @@ export async function POST(req: Request) {
         
         console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
         
-        // Generate QR code image as base64 (optional - fallback if package not available)
+        // Generate QR code using API service (no package needed)
         let qrCodeImage = '';
         try {
-          // Dynamic import to avoid breaking if package not installed
-          const QRCode = await import('qrcode');
-          qrCodeImage = await QRCode.toDataURL(JSON.stringify(qrData), {
-            width: 300,
-            margin: 2,
-            color: {
-              dark: '#000000',
-              light: '#FFFFFF'
-            }
-          });
-          console.log(`📧 QR code image generated successfully`);
+          // Use QR Server API to generate QR code
+          const qrText = JSON.stringify(qrData);
+          const encodedText = encodeURIComponent(qrText);
+          qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodedText}`;
+          console.log(`📧 QR code URL generated: ${qrCodeImage}`);
         } catch (qrError) {
-          console.log(`⚠️ QR code generation failed (package not available): ${qrError.message}`);
+          console.log(`⚠️ QR code generation failed: ${qrError.message}`);
           // Continue without QR image - email will still work
         }
         
