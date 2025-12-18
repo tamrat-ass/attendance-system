@@ -181,7 +181,7 @@ export async function POST(req: Request) {
                 <h3 style="color: #8B0000; margin-top: 0;">Your Registration Details:</h3>
                 <table style="width: 100%; border-collapse: collapse;">
                   <tr>
-                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Student ID:</td>
+                    <td style="padding: 8px 0; font-weight: bold; color: #333;">Registration ID:</td>
                     <td style="padding: 8px 0; color: #666;">${studentId}</td>
                   </tr>
                   <tr>
