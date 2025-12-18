@@ -13,6 +13,7 @@ import '../utils/correct_ethiopian_date.dart';
 import 'attendance_screen.dart';
 import 'students_screen.dart';
 import 'class_management_screen.dart';
+import 'help_screen.dart';
 import 'change_password_screen.dart';
 import 'user_management_screen.dart';
 import 'settings_screen.dart';
@@ -615,7 +616,8 @@ class _HomeScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: isManagementCard ? 15 : 14,
                 fontWeight: isManagementCard ? FontWeight.w700 : FontWeight.w600,
-                color: Colors.grey[800],
+                // Use dark blue on white background
+                color: AppColors.darkBlue,
                 height: 1.2,
               ),
             ),
@@ -677,7 +679,8 @@ class _HomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  // Use dark blue on white background
+                  color: AppColors.darkBlue,
                   height: 1.1,
                 ),
               ),
@@ -956,6 +959,21 @@ class _HomeScreen extends StatelessWidget {
                           _openWebVersion(context);
                         },
                       ),
+                    
+                    // Help & Support
+                    _buildMoreOptionItem(
+                      context,
+                      'Help & Support',
+                      Icons.help_outline,
+                      Colors.teal,
+                      () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const HelpScreen()),
+                        );
+                      },
+                    ),
 
                   ],
                 ),
@@ -1013,9 +1031,11 @@ class _HomeScreen extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 16,
+            // Use dark blue on light background (Colors.grey[50])
+            color: AppColors.darkBlue,
           ),
         ),
         trailing: Icon(

@@ -1370,7 +1370,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: isDarkTheme ? null : AppColors.darkBlue,
+                                          // Use dark blue only on white/light backgrounds
+                                          color: !isDarkTheme ? AppColors.darkBlue : null,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -1378,7 +1379,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                         'ID: ${student.id} • ${student.phone}',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: isDarkTheme ? Colors.grey.shade400 : AppColors.darkBlueMedium,
+                                          // Use dark blue only on white/light backgrounds
+                                          color: !isDarkTheme ? AppColors.darkBlueMedium : Colors.grey.shade400,
                                         ),
                                       ),
                                       if (_searchQuery.isNotEmpty) ...[

@@ -86,24 +86,7 @@ class ThemeService extends ChangeNotifier {
         seedColor: AppColors.primary,
         brightness: Brightness.light,
       ),
-      // Custom text theme with dark blue colors for light theme
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(color: Color(0xFF1A237E)), // Dark blue
-        displayMedium: TextStyle(color: Color(0xFF1A237E)),
-        displaySmall: TextStyle(color: Color(0xFF1A237E)),
-        headlineLarge: TextStyle(color: Color(0xFF1A237E)),
-        headlineMedium: TextStyle(color: Color(0xFF1A237E)),
-        headlineSmall: TextStyle(color: Color(0xFF1A237E)),
-        titleLarge: TextStyle(color: Color(0xFF1A237E)),
-        titleMedium: TextStyle(color: Color(0xFF1A237E)),
-        titleSmall: TextStyle(color: Color(0xFF1A237E)),
-        bodyLarge: TextStyle(color: Color(0xFF283593)), // Slightly lighter dark blue
-        bodyMedium: TextStyle(color: Color(0xFF283593)),
-        bodySmall: TextStyle(color: Color(0xFF3949AB)), // Even lighter for small text
-        labelLarge: TextStyle(color: Color(0xFF1A237E)),
-        labelMedium: TextStyle(color: Color(0xFF283593)),
-        labelSmall: TextStyle(color: Color(0xFF3949AB)),
-      ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -128,8 +111,7 @@ class ThemeService extends ChangeNotifier {
           borderRadius: BorderRadius.circular(8),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        labelStyle: const TextStyle(color: Color(0xFF283593)), // Dark blue for labels
-        hintStyle: const TextStyle(color: Color(0xFF3949AB)), // Lighter blue for hints
+
       ),
     );
   }
