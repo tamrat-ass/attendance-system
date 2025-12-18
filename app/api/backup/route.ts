@@ -129,11 +129,15 @@ async function backupAttendance(sheets: any, spreadsheetId: string) {
     console.log(`📊 Last backed up attendance ID: ${lastBackedUpId}`);
 
     // Get new attendance records from database
+    // Ensure lastBackedUpId is a valid number
+    const safeLastId = lastBackedUpId || 0;
+    console.log(`📊 Using safe last ID: ${safeLastId}`);
+    
     const result = await sql`
       SELECT a.id, a.student_id, s.full_name as student_name, a.date, a.status, a.notes, a.created_at, a.updated_at
       FROM attendance a
       LEFT JOIN students s ON a.student_id = s.id
-      WHERE a.id > ${lastBackedUpId}
+      WHERE a.id > ${safeLastId}
       ORDER BY a.id ASC
     `;
 
