@@ -1155,5 +1155,4 @@ class _EnhancedEmailLogsScreenState extends State<EnhancedEmailLogsScreen> {
         ],
       ),
     );
-  }
-}
+  
