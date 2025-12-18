@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import nodemailer from "nodemailer";
+import crypto from "crypto";
+
+// Generate secure token for QR code validation (matches mobile app)
+function generateSecureToken(studentId: number, fullName: string, phone: string): string {
+  const data = `${studentId}_${fullName}_${phone}_mk_attendance`;
+  const hash = crypto.createHash('sha256').update(data).digest('hex');
+  return hash.substring(0, 16); // Use first 16 characters
+}
 
 // GET ALL STUDENTS with filters, search, pagination
 export async function GET(req: Request) {
@@ -183,12 +191,14 @@ export async function POST(req: Request) {
           },
         });
 
-        // Generate complete QR code data with student_id (non-expiring - no timestamp)
+        // Generate complete QR code data matching mobile app format
         const qrData = {
           student_id: studentId,
           full_name: full_name,
           class: studentClass,
-          phone: phone
+          phone: phone,
+          timestamp: Date.now(),
+          token: generateSecureToken(studentId, full_name, phone)
         };
         
         console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
