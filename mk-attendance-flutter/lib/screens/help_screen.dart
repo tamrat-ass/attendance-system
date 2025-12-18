@@ -21,22 +21,7 @@ class HelpScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Version Info Card
-            _buildInfoCard(
-              context,
-              'App Information',
-              [
-                _buildInfoRow('Version', '4.1.0'),
-                _buildInfoRow('Release Date', 'December 18, 2024'),
-                _buildInfoRow('Build', 'Production Release'),
-              ],
-              Icons.info_outline,
-              Colors.blue,
-              isDark,
-            ),
-            
-            const SizedBox(height: 16),
-            
+
             // Quick Start Guide
             _buildInfoCard(
               context,
@@ -96,15 +81,15 @@ class HelpScreen extends StatelessWidget {
               [
                 _buildContactItem(
                   'Email Support',
-                  'support@mkattendance.com',
+                  'tame.assu23@gmail.com',
                   Icons.email,
-                  () => _launchEmail('support@mkattendance.com'),
+                  () => _launchEmail('tame.assu23@gmail.com'),
                 ),
                 _buildContactItem(
                   'System Admin',
-                  'admin@mkattendance.com',
+                  'tame.assu23@gmail.com',
                   Icons.admin_panel_settings,
-                  () => _launchEmail('admin@mkattendance.com'),
+                  () => _launchEmail('tame.assu23@gmail.com'),
                 ),
                 _buildContactItem(
                   'Web Version',
@@ -115,23 +100,6 @@ class HelpScreen extends StatelessWidget {
               ],
               Icons.contact_support,
               Colors.purple,
-              isDark,
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // What's New
-            _buildInfoCard(
-              context,
-              'What\'s New in v4.1',
-              [
-                _buildNewFeature('🎨 Enhanced UI', 'Dark blue text on light backgrounds for better readability'),
-                _buildNewFeature('🧹 Streamlined Navigation', 'Simplified More options menu'),
-                _buildNewFeature('🔧 Fixed Issues', 'Resolved navigation and theme consistency problems'),
-                _buildNewFeature('📱 Better Performance', 'Improved app responsiveness and stability'),
-              ],
-              Icons.new_releases,
-              Colors.indigo,
               isDark,
             ),
             

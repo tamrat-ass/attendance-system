@@ -730,7 +730,7 @@ class _AddEditStudentDialogState extends State<AddEditStudentDialog> {
                 decoration: const InputDecoration(
                   labelText: 'Email Address *',
                   border: OutlineInputBorder(),
-                  hintText: 'student@gmail.com',
+                  hintText: 'zema.mk23@gmail.com',
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {

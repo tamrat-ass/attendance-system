@@ -4,7 +4,7 @@ export async function GET() {
   try {
     // Test environment variables without exposing sensitive data
     const envCheck = {
-      DATABASE_URL: process.env.DATABASE_URL ? 'Set' : 'Missing',
+      POSTGRES_URL: process.env.POSTGRES_URL ? 'Set' : 'Missing',
       GOOGLE_SPREADSHEET_ID: process.env.GOOGLE_SPREADSHEET_ID ? 'Set' : 'Missing',
       GOOGLE_SERVICE_ACCOUNT_KEY: process.env.GOOGLE_SERVICE_ACCOUNT_KEY ? 'Set' : 'Missing',
       BACKUP_API_KEY: process.env.BACKUP_API_KEY ? 'Set' : 'Missing',

@@ -37,11 +37,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // App Information
-            _buildSectionHeader('App Information'),
-            _buildInfoCard(),
-            const SizedBox(height: 24),
-
             // General Settings
             _buildSectionHeader('General Settings'),
             _buildGeneralSettings(),
@@ -87,81 +82,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.bold,
           color: Colors.blue,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    // color: AppColors.primary,
-                    // borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      'assets/images/mk.png',
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
-                          Icons.school,
-                          color: Colors.white,
-                          size: 24,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppConstants.appName,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        AppConstants.appDescription,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Version',
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-                const Text(
-                  AppConstants.appVersion,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );
@@ -261,7 +181,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.blue.shade100,
-                  backgroundImage: const AssetImage('assets/images/mk.png'),
+                  backgroundImage: const AssetImage('assets/images/apple-icon.png'),
                 ),
                 title: Text(user?.fullName ?? 'Unknown User'),
                 subtitle: Text(user?.username ?? 'No username'),
@@ -293,14 +213,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Card(
       child: Column(
         children: [
-          ListTile(
-            leading: const Icon(Icons.info, color: Colors.blue),
-            title: const Text('About MK Attendance'),
-            subtitle: const Text('Learn more about this app'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: _showAboutDialog,
-          ),
-          const Divider(height: 1),
+
           ListTile(
             leading: const Icon(Icons.web, color: Colors.green),
             title: const Text('Web Version'),
@@ -520,38 +433,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               foregroundColor: Colors.white,
             ),
             child: const Text('Logout'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAboutDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('About MK Attendance'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('MK Attendance Management System'),
-            SizedBox(height: 8),
-            Text('A comprehensive attendance tracking solution for MK member management.'),
-            SizedBox(height: 16),
-            Text('Features:'),
-            Text('• Mark attendance with Ethiopian calendar'),
-            Text('• Manage students and classes'),
-            Text('• Generate detailed reports'),
-            Text('• Export data to CSV'),
-            Text('• Offline capability'),
-            Text('• Real-time sync with web app'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
           ),
         ],
       ),

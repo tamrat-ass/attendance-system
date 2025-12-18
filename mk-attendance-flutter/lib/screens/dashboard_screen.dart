@@ -353,7 +353,7 @@ class _HomeScreen extends StatelessWidget {
                       CircleAvatar(
                         radius: 25,
                         backgroundColor: Colors.white.withOpacity(0.2),
-                        backgroundImage: const AssetImage('assets/images/mk.png'),
+                        backgroundImage: const AssetImage('assets/images/apple-icon.png'),
                       ),
                       const SizedBox(width: 24),
                       Expanded(

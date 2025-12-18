@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Pool } from 'pg';
+import { sql } from '@vercel/postgres';
 import { google } from 'googleapis';
-
-// Database connection
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-});
 
 // Google Sheets configuration
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
@@ -38,13 +32,11 @@ async function backupStudents(sheets: any, spreadsheetId: string) {
     console.log('🔄 Starting students backup...');
     
     // Get all students from database
-    const client = await pool.connect();
-    const result = await client.query(`
+    const result = await sql`
       SELECT id, full_name, phone, class, gender, email, created_at, updated_at 
       FROM students 
       ORDER BY id ASC
-    `);
-    client.release();
+    `;
 
     const students = result.rows;
     console.log(`📊 Found ${students.length} students to backup`);
@@ -137,15 +129,13 @@ async function backupAttendance(sheets: any, spreadsheetId: string) {
     console.log(`📊 Last backed up attendance ID: ${lastBackedUpId}`);
 
     // Get new attendance records from database
-    const client = await pool.connect();
-    const result = await client.query(`
+    const result = await sql`
       SELECT a.id, a.student_id, s.full_name as student_name, a.date, a.status, a.notes, a.created_at, a.updated_at
       FROM attendance a
       LEFT JOIN students s ON a.student_id = s.id
-      WHERE a.id > $1
+      WHERE a.id > ${lastBackedUpId}
       ORDER BY a.id ASC
-    `, [lastBackedUpId]);
-    client.release();
+    `;
 
     const newAttendance = result.rows;
     console.log(`📊 Found ${newAttendance.length} new attendance records to backup`);
@@ -218,8 +208,7 @@ async function backupAttendance(sheets: any, spreadsheetId: string) {
 // Create backup log entry
 async function logBackupResult(result: any) {
   try {
-    const client = await pool.connect();
-    await client.query(`
+    await sql`
       INSERT INTO backup_logs (
         backup_type, 
         status, 
@@ -227,15 +216,15 @@ async function logBackupResult(result: any) {
         attendance_count, 
         error_message, 
         created_at
-      ) VALUES ($1, $2, $3, $4, $5, NOW())
-    `, [
-      'google_sheets',
-      result.success ? 'success' : 'failed',
-      result.studentsCount || 0,
-      result.attendanceCount || 0,
-      result.error || null
-    ]);
-    client.release();
+      ) VALUES (
+        'google_sheets',
+        ${result.success ? 'success' : 'failed'},
+        ${result.studentsCount || 0},
+        ${result.attendanceCount || 0},
+        ${result.error || null},
+        NOW()
+      )
+    `;
   } catch (error) {
     console.error('Failed to log backup result:', error);
     // Don't throw - logging failure shouldn't break the backup
@@ -321,13 +310,11 @@ export async function GET(request: NextRequest) {
 
     if (action === 'status') {
       // Return backup status
-      const client = await pool.connect();
-      const result = await client.query(`
+      const result = await sql`
         SELECT * FROM backup_logs 
         ORDER BY created_at DESC 
         LIMIT 10
-      `);
-      client.release();
+      `;
 
       return NextResponse.json({
         success: true,
