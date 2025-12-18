@@ -17,7 +17,7 @@ const EMAIL_CONFIG = {
 // Create transporter
 let transporter: any = null;
 try {
-  transporter = nodemailer.createTransporter(EMAIL_CONFIG);
+  transporter = nodemailer.createTransport(EMAIL_CONFIG);
 } catch (error) {
   console.error('Failed to create email transporter:', error);
 }
