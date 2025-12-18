@@ -1,0 +1,9 @@
+QR Code Size Fix Deployment - Dec 18, 2024
+Current Settings:
+- QR Image: 120x120 pixels
+- Container: 300px width, 200px height
+- Display: 90px (30% of container)
+- Mobile: 80px with responsive CSS
+- Padding: 25px around QR code
+
+This file is created to trigger a new Vercel deployment.
