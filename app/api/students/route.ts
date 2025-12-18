@@ -277,28 +277,6 @@ export async function POST(req: Request) {
                   </div>
                 ` : ''}
                 
-                <div style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #8B0000;">
-                  <h4 style="color: #8B0000; margin-top: 0;">Student Information:</h4>
-                  <table style="width: 100%; border-collapse: collapse;">
-                    <tr>
-                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Student ID:</td>
-                      <td style="padding: 5px; color: #666; text-align: left;">${studentId}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Name:</td>
-                      <td style="padding: 5px; color: #666; text-align: left;">${full_name}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Class:</td>
-                      <td style="padding: 5px; color: #666; text-align: left;">${studentClass}</td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 5px; font-weight: bold; color: #333; text-align: left;">Phone:</td>
-                      <td style="padding: 5px; color: #666; text-align: left;">${phone}</td>
-                    </tr>
-                  </table>
-                </div>
-                
                 <p style="color: #666; font-size: 14px;">
                   <strong>How to use:</strong><br>
                   • Show this QR code to your coordinator for attendance<br>
