@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/backup",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/backup/route.ts": {
+      "maxDuration": 300
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
