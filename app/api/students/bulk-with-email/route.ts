@@ -311,7 +311,31 @@ export async function POST(request: NextRequest) {
             [student.full_name.trim(), student.phone.trim(), normalizedGender, student.class.trim(), finalEmail, '{}']
           );
           
-          const studentId = (result as any).insertId || Date.now(); // Fallback ID for PostgreSQL
+          let studentId = (result as any).insertId;
+          
+          // Debug logging
+          console.log(`📊 Database result:`, result);
+          console.log(`📊 Student ID from insertId:`, studentId);
+          
+          // Fallback: if insertId is undefined, query for the student we just created
+          if (!studentId) {
+            console.log(`⚠️ insertId is undefined, querying for student...`);
+            const [studentQuery]: any = await db.query(
+              "SELECT id FROM students WHERE full_name = ? AND phone = ? ORDER BY id DESC LIMIT 1",
+              [student.full_name.trim(), student.phone.trim()]
+            );
+            
+            if (studentQuery && studentQuery.length > 0) {
+              studentId = studentQuery[0].id;
+              console.log(`✅ Found student ID via query: ${studentId}`);
+            } else {
+              // Last resort: use timestamp as ID
+              studentId = Date.now();
+              console.log(`⚠️ Using timestamp as fallback ID: ${studentId}`);
+            }
+          }
+          
+          console.log(`📊 Final student ID: ${studentId}`);
           
           // Generate QR code and email content
           const { qrData, qrCodeImage, emailHtml } = await generateQRAndEmail({
