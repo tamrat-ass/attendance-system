@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       timestamp: Date.now()
     };
 
-    // Generate VERY SMALL QR code for mobile
+    // Generate dark red QR code without border for mobile
     const qrText = JSON.stringify(qrData);
     const encodedText = encodeURIComponent(qrText);
     const qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=8B0000&data=${encodedText}`;
