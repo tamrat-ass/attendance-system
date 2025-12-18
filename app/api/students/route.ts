@@ -122,10 +122,17 @@ export async function POST(req: Request) {
     const finalGender = gender && gender.trim() ? gender.trim() : 'Male';
     const finalEmail = email.trim(); // Email is required, no need for null check
 
+    // Generate QR code data first (non-expiring - no timestamp)
+    const tempQrData = {
+      full_name: full_name,
+      class: studentClass,
+      phone: phone
+    };
+    
     // Insert student and get the ID
     const [result]: any = await db.query(
-      "INSERT INTO students (full_name, phone, class, gender, email) VALUES (?, ?, ?, ?, ?)",
-      [full_name, phone, studentClass, finalGender, finalEmail]
+      "INSERT INTO students (full_name, phone, class, gender, email, qr_code) VALUES (?, ?, ?, ?, ?, ?)",
+      [full_name, phone, studentClass, finalGender, finalEmail, JSON.stringify(tempQrData)]
     );
 
     let studentId = result.insertId;
@@ -176,7 +183,7 @@ export async function POST(req: Request) {
           },
         });
 
-        // Generate QR code data (non-expiring - no timestamp)
+        // Generate complete QR code data with student_id (non-expiring - no timestamp)
         const qrData = {
           student_id: studentId,
           full_name: full_name,
@@ -185,6 +192,17 @@ export async function POST(req: Request) {
         };
         
         console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
+        
+        // Update the student record with complete QR data including student_id
+        try {
+          await db.query(
+            "UPDATE students SET qr_code = ? WHERE id = ?",
+            [JSON.stringify(qrData), studentId]
+          );
+          console.log(`📧 QR code saved to database for student ${studentId}`);
+        } catch (qrError) {
+          console.error('Failed to save QR code to database:', qrError);
+        }
 
         // Create email content
         const emailHtml = `
