@@ -128,7 +128,31 @@ export async function POST(req: Request) {
       [full_name, phone, studentClass, finalGender, finalEmail]
     );
 
-    const studentId = result.insertId;
+    let studentId = result.insertId;
+    
+    // Debug logging
+    console.log(`📊 Database result:`, result);
+    console.log(`📊 Student ID from insertId:`, studentId);
+    
+    // Fallback: if insertId is undefined, query for the student we just created
+    if (!studentId) {
+      console.log(`⚠️ insertId is undefined, querying for student...`);
+      const [studentQuery]: any = await db.query(
+        "SELECT id FROM students WHERE full_name = ? AND phone = ? ORDER BY id DESC LIMIT 1",
+        [full_name, phone]
+      );
+      
+      if (studentQuery && studentQuery.length > 0) {
+        studentId = studentQuery[0].id;
+        console.log(`✅ Found student ID via query: ${studentId}`);
+      } else {
+        // Last resort: use timestamp as ID
+        studentId = Date.now();
+        console.log(`⚠️ Using timestamp as fallback ID: ${studentId}`);
+      }
+    }
+    
+    console.log(`📊 Final student ID: ${studentId}`);
 
     // Send registration email directly (non-blocking)
     let emailSent = false;
@@ -152,13 +176,12 @@ export async function POST(req: Request) {
           },
         });
 
-        // Generate QR code data
+        // Generate QR code data (non-expiring - no timestamp)
         const qrData = {
           student_id: studentId,
           full_name: full_name,
           class: studentClass,
-          phone: phone,
-          timestamp: Date.now()
+          phone: phone
         };
         
         console.log(`📧 Generated QR data:`, JSON.stringify(qrData));
@@ -242,12 +265,34 @@ export async function POST(req: Request) {
 
         emailSent = true;
         console.log(`✅ Registration email sent to ${finalEmail}`);
+        
+        // Log successful email to database
+        try {
+          await db.query(
+            "INSERT INTO email_logs (type, recipient, sender, content, status, student_id) VALUES (?, ?, ?, ?, ?, ?)",
+            ['registration', finalEmail, process.env.SMTP_USER, 'Welcome to MK Attendance System - Your QR Code', 'success', studentId]
+          );
+          console.log(`📝 Email logged to database`);
+        } catch (logError) {
+          console.error('Failed to log email:', logError);
+        }
       } else {
         console.log(`⚠️ Email not configured - SMTP credentials missing`);
       }
     } catch (emailError) {
       console.log(`⚠️ Email failed but student created: ${emailError}`);
       console.error('Full email error:', emailError);
+      
+      // Log failed email to database
+      try {
+        await db.query(
+          "INSERT INTO email_logs (type, recipient, sender, content, status, error_message, student_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          ['registration', finalEmail, process.env.SMTP_USER || 'system', 'Welcome to MK Attendance System - Your QR Code', 'failed', emailError.message, studentId]
+        );
+        console.log(`📝 Failed email logged to database`);
+      } catch (logError) {
+        console.error('Failed to log email error:', logError);
+      }
     }
 
     return NextResponse.json({ 
