@@ -285,25 +285,16 @@ export async function POST(req: Request) {
                 </p>
                 
                 <!-- YouTube Channel Promotion -->
-                <div style="background: #ff0000; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center;">
-                  <style>
-                    @keyframes bellRing {
-                      0%, 50%, 100% { transform: rotate(0deg); }
-                      10%, 30% { transform: rotate(-10deg); }
-                      20%, 40% { transform: rotate(10deg); }
-                    }
-                    .animated-bell {
-                      display: inline-block;
-                      animation: bellRing 2s infinite;
-                      font-size: 18px;
-                    }
-                  </style>
+                <div style="background: #ff0000; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; border: 2px solid #ffffff;">
                   <p style="margin: 0; font-size: 16px; font-weight: bold;">📺 Follow us on YouTube!</p>
                   <a href="https://youtube.com/@-zemawetibebzmk7905" 
-                     style="color: white; text-decoration: none; font-size: 14px; display: block; margin-top: 8px;">
-                    <span class="animated-bell">🔔</span> Subscribe: youtube.com/@-zemawetibebzmk7905
+                     style="color: white; text-decoration: none; font-size: 14px; display: block; margin-top: 8px; background: #cc0000; padding: 8px; border-radius: 5px;">
+                    🔔 ➤ Subscribe: youtube.com/@-zemawetibebzmk7905 ⬅
                   </a>
-                  <p style="margin: 8px 0 0 0; font-size: 13px;">Get tutorials, updates & tech tips!</p>
+                  <p style="margin: 8px 0 0 0; font-size: 13px;">🎯 Get tutorials, updates & tech tips! 🎯</p>
+                  <p style="margin: 5px 0 0 0; font-size: 12px; background: #990000; padding: 5px; border-radius: 3px;">
+                    ⭐ Don't miss our latest videos! ⭐
+                  </p>
                 </div>
               </div>
               
