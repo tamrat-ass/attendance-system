@@ -41,8 +41,9 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       const data = await response.json();
 
       if (data.success) {
-        // Store user info in localStorage and start session
-        localStorage.setItem('user', JSON.stringify(data.user));
+        // Start session with activity tracking (this will also store user data)
+        const { SessionManager } = await import('@/lib/session-manager');
+        SessionManager.startSession(data.user);
         onLogin();
       } else {
         setError(data.message || 'Invalid username or password');

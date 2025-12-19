@@ -23,9 +23,30 @@ export default function Home() {
       setIsLoading(false);
     };
     
+    // Set up logout callback for auto-logout
+    SessionManager.setLogoutCallback(() => {
+      console.log('Auto-logout triggered due to 3 minutes of inactivity');
+      setIsAuthenticated(false);
+    });
+    
     // Use requestAnimationFrame for faster rendering
     requestAnimationFrame(checkAuth);
-  }, []);
+
+    // Set up periodic checks every 10 seconds to catch session expiry
+    const interval = setInterval(() => {
+      const stillAuth = SessionManager.isAuthenticated();
+      if (!stillAuth && isAuthenticated) {
+        console.log('Session expired - logging out');
+        setIsAuthenticated(false);
+      }
+    }, 10000);
+    
+    return () => {
+      clearInterval(interval);
+      // Clear logout callback on unmount
+      SessionManager.setLogoutCallback(() => {});
+    };
+  }, [isAuthenticated]);
 
   const handleLogin = () => {
     setIsAuthenticated(true);

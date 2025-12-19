@@ -7,6 +7,7 @@ import AttendanceMarking from './attendance-marking';
 import Reports from './reports';
 import AdminPanel from './admin-panel';
 import Header from './header';
+import SessionTimeoutWarning from '@/components/ui/session-timeout-warning';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -103,6 +104,7 @@ export default function Dashboard({ onLogout }: DashboardProps) {
   return (
     <div className="min-h-screen bg-background">
       <Header onLogout={onLogout} />
+      <SessionTimeoutWarning />
       
       <main className="max-w-7xl mx-auto p-3 sm:p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
