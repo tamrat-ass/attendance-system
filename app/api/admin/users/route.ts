@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
-// GET all users
+// GET all users - Fixed can_update_student permission
 export async function GET(request: NextRequest) {
   try {
     const [rows]: any = await db.query(
