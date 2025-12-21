@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,8 +35,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check password
-    if (userRecord.password_hash !== password) {
+    // Check password using bcrypt
+    const passwordMatch = await bcrypt.compare(password, userRecord.password_hash);
+    if (!passwordMatch) {
       return NextResponse.json(
         { success: false, message: 'You entered wrong password' },
         { status: 401 }
