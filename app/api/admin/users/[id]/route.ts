@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // PUT - Update user
 export async function PUT(
@@ -76,8 +77,9 @@ export async function PUT(
 
     // Only update password if provided
     if (password) {
+      const hashedPassword = await bcrypt.hash(password, 12);
       query += ', password_hash = ?';
-      queryParams.push(password);
+      queryParams.push(hashedPassword);
     }
 
     query += ' WHERE id = ?';
