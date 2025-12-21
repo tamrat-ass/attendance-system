@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Fix Update Permission</title>
+    <title>Fix Permission Test</title>
 </head>
 <body>
     <h1>Fix can_update_student Permission</h1>
@@ -10,6 +10,9 @@
 
     <script>
         async function fixPermission() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Fixing permission...';
+            
             try {
                 const response = await fetch('/api/fix-update-permission', {
                     method: 'POST',
@@ -19,13 +22,25 @@
                 });
                 
                 const data = await response.json();
-                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
                 
                 if (data.success) {
-                    alert('Permission fixed! Please refresh your page and try again.');
+                    resultDiv.innerHTML = `
+                        <h3>✅ Success!</h3>
+                        <p>${data.message}</p>
+                        <h4>Users updated:</h4>
+                        <pre>${JSON.stringify(data.users, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>❌ Error</h3>
+                        <p>${data.message}</p>
+                    `;
                 }
             } catch (error) {
-                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+                resultDiv.innerHTML = `
+                    <h3>❌ Network Error</h3>
+                    <p>${error.message}</p>
+                `;
             }
         }
     </script>
