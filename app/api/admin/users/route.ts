@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const [rows]: any = await db.query(
       `SELECT id, username, email, full_name, role, status, 
-       can_manage_students, can_add_student, can_upload_students, can_delete_student,
+       can_manage_students, can_add_student, can_update_student, can_upload_students, can_delete_student,
        can_mark_attendance, can_view_reports, can_export_data, 
        can_manage_users, can_delete_user, can_manage_passwords, created_at 
        FROM users ORDER BY created_at DESC`
@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
       ...user,
       can_manage_students: Boolean(user.can_manage_students),
       can_add_student: Boolean(user.can_add_student),
+      can_update_student: Boolean(user.can_update_student),
       can_upload_students: Boolean(user.can_upload_students),
       can_delete_student: Boolean(user.can_delete_student),
       can_mark_attendance: Boolean(user.can_mark_attendance),
