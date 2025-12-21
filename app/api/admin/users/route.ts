@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   try {
     const { 
       username, email, full_name, password, role, status,
-      can_manage_students, can_add_student, can_upload_students, can_delete_student,
+      can_manage_students, can_add_student, can_update_student, can_upload_students, can_delete_student,
       can_mark_attendance, can_view_reports, can_export_data, 
       can_manage_users, can_delete_user, can_manage_passwords
     } = await request.json();
