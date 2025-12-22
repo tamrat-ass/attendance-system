@@ -292,12 +292,17 @@ export async function POST(request: NextRequest) {
 
         console.log('✓ INSERTING new student:', student.full_name);
         
-        // Normalize gender value
-        let normalizedGender = 'Male'; // Default
+        // Normalize gender value - read from student data
+        let normalizedGender = 'Male'; // Default fallback
         if (student.gender) {
           const genderLower = student.gender.toLowerCase().trim();
-          if (genderLower.includes('f') || genderLower === 'female') {
+          // Check for female variations
+          if (genderLower === 'female' || genderLower === 'f' || genderLower.startsWith('fem')) {
             normalizedGender = 'Female';
+          }
+          // Check for male variations
+          else if (genderLower === 'male' || genderLower === 'm' || genderLower.startsWith('mal')) {
+            normalizedGender = 'Male';
           }
         }
         
