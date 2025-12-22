@@ -126,6 +126,38 @@ export async function POST(req: Request) {
       );
     }
 
+    // ✅ CHECK FOR DUPLICATE STUDENTS - Prevent redundant registration
+    console.log('🔍 Checking for duplicate student:', full_name.trim(), phone.trim());
+    
+    const [existingStudent]: any = await db.query(
+      "SELECT id, full_name, phone, class, gender, email, created_at FROM students WHERE full_name = ? AND phone = ?",
+      [full_name.trim(), phone.trim()]
+    );
+
+    if (existingStudent && existingStudent.length > 0) {
+      const existing = existingStudent[0];
+      console.log('❌ DUPLICATE FOUND - Student already exists:', existing.full_name, '(ID:', existing.id, ')');
+      
+      return NextResponse.json(
+        { 
+          message: "Student already exists in the system",
+          error: "DUPLICATE_STUDENT",
+          existingStudent: {
+            id: existing.id,
+            full_name: existing.full_name,
+            phone: existing.phone,
+            class: existing.class,
+            gender: existing.gender,
+            email: existing.email,
+            created_at: existing.created_at
+          }
+        },
+        { status: 409 } // 409 Conflict status code for duplicates
+      );
+    }
+
+    console.log('✅ No duplicate found - proceeding with registration');
+
     // Use 'Male' as default if gender is empty
     const finalGender = gender && gender.trim() ? gender.trim() : 'Male';
     const finalEmail = email.trim(); // Email is required, no need for null check
