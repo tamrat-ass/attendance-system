@@ -464,7 +464,7 @@ class _HomeScreen extends StatelessWidget {
                 children: [
                   _buildCompactOverviewItem(
                     Icons.today,
-                    EthiopianDateUtils.formatEthiopianDate(EthiopianDateUtils.getCurrentEthiopianDate()),
+                    CorrectEthiopianDateUtils.formatEthiopianDate(CorrectEthiopianDateUtils.getCurrentEthiopianDate()),
                     AppColors.primary,
                   ),
                   Container(

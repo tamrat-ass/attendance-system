@@ -170,8 +170,8 @@ class _QRConfirmationScreenState extends State<QRConfirmationScreen> {
                           _buildDetailRow(
                             Icons.today,
                             'Date',
-                            EthiopianDateUtils.formatEthiopianDate(
-                              EthiopianDateUtils.getCurrentEthiopianDate()
+                            CorrectEthiopianDateUtils.formatEthiopianDate(
+                              CorrectEthiopianDateUtils.getCurrentEthiopianDate()
                             ),
                           ),
                           

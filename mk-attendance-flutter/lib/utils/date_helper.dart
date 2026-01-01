@@ -22,14 +22,14 @@ class DateHelper {
 
   // Get current Ethiopian date for display
   static String getCurrentEthiopianDisplayDate() {
-    final ethiopianDate = EthiopianDateUtils.getCurrentEthiopianDate();
-    return EthiopianDateUtils.formatEthiopianDate(ethiopianDate);
+    final ethiopianDate = CorrectEthiopianDateUtils.getCurrentEthiopianDate();
+    return CorrectEthiopianDateUtils.formatEthiopianDate(ethiopianDate);
   }
 
   // Get Ethiopian date string from DateTime
   static String getEthiopianDateString(DateTime date) {
-    final ethiopianDate = EthiopianDateUtils.gregorianToEthiopian(date);
-    return EthiopianDateUtils.formatEthiopianDate(ethiopianDate);
+    final ethiopianDate = CorrectEthiopianDateUtils.gregorianToEthiopian(date);
+    return CorrectEthiopianDateUtils.formatEthiopianDate(ethiopianDate);
   }
 
   // Get Ethiopian date string from API format

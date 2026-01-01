@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../utils/ethiopian_date.dart';
+import '../utils/correct_ethiopian_date.dart';
 import '../utils/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final currentDate = DateTime.now().toIso8601String().split('T')[0];
-    final ethiopianDate = EthiopianDateUtils.formatDate(currentDate);
+    final ethiopianDate = CorrectEthiopianDateUtils.formatEthiopianDate(CorrectEthiopianDateUtils.getCurrentEthiopianDate());
 
     return Scaffold(
       body: Container(

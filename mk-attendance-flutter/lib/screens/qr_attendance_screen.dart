@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/qr_scanner_service.dart';
 import '../utils/app_colors.dart';
-import '../utils/ethiopian_date.dart';
+import '../utils/correct_ethiopian_date.dart';
 import 'qr_confirmation_screen.dart';
 
 class QRAttendanceScreen extends StatefulWidget {
@@ -279,7 +279,7 @@ class _QRAttendanceScreenState extends State<QRAttendanceScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Date: ${EthiopianDateUtils.formatEthiopianDate(EthiopianDateUtils.getCurrentEthiopianDate())}',
+                        'Date: ${CorrectEthiopianDateUtils.formatEthiopianDate(CorrectEthiopianDateUtils.getCurrentEthiopianDate())}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[500],
