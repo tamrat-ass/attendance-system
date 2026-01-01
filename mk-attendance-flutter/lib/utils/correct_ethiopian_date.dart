@@ -8,119 +8,44 @@ class CorrectEthiopianDateUtils {
     'እሑድ', 'ሰኞ', 'ማክሰኞ', 'ረቡዕ', 'ሐሙስ', 'ዓርብ', 'ቅዳሜ'
   ];
 
-  /// Correct Ethiopian date conversion based on user specification
-  /// December 14, 2025 = 5 ታኅሳስ 2018 (as specified by user)
+  /// Accurate Ethiopian date conversion
+  /// Based on user correction: January 1, 2026 = 23 ታኅሳስ 2018
   static Map<String, int> gregorianToEthiopian(DateTime gregorianDate) {
-    final year = gregorianDate.year;
-    final month = gregorianDate.month;
-    final day = gregorianDate.day;
+    // Reference point: January 1, 2026 = 23 ታኅሳስ 2018
+    final referenceGregorian = DateTime(2026, 1, 1); // January 1, 2026
+    final referenceEthiopian = {'year': 2018, 'month': 4, 'day': 23}; // 23 ታኅሳስ 2018
     
-    // Ethiopian year is always 7 years behind Gregorian
-    int ethYear = year - 7; // 2025 - 7 = 2018 ✓
-    int ethMonth;
-    int ethDay;
+    // Calculate days difference from reference point
+    final daysDiff = gregorianDate.difference(referenceGregorian).inDays;
     
-    // Ethiopian calendar mapping based on user specification:
-    // December 14, 2025 = 5 ታኅሳስ 2018
-    // This means December 10, 2025 = 1 ታኅሳስ 2018
+    // Start from reference Ethiopian date
+    int ethYear = referenceEthiopian['year']!;
+    int ethMonth = referenceEthiopian['month']!;
+    int ethDay = referenceEthiopian['day']! + daysDiff;
     
-    if (month >= 9) {
-      // September to December (Ethiopian months 1-4)
-      if (month == 9) {
-        ethMonth = 1; // መስከረም
-        ethDay = day - 10; // Approximate
-        if (ethDay <= 0) {
-          ethMonth = 13; // Previous year's ጳጉሜን
-          ethDay = 6 + ethDay;
-        }
-      } else if (month == 10) {
-        ethMonth = 2; // ጥቅምት
-        ethDay = day - 10;
-        if (ethDay <= 0) {
-          ethMonth = 1;
-          ethDay = 30 + ethDay;
-        }
-      } else if (month == 11) {
-        ethMonth = 3; // ኅዳር
-        ethDay = day - 9;
-        if (ethDay <= 0) {
-          ethMonth = 2;
-          ethDay = 30 + ethDay;
-        }
-      } else if (month == 12) {
-        ethMonth = 4; // ታኅሳስ
-        // December 14 = ታኅሳስ 5, so December 10 = ታኅሳስ 1
-        ethDay = day - 9; // Dec 14 - 9 = 5 ✓
-        if (ethDay <= 0) {
-          ethMonth = 3;
-          ethDay = 30 + ethDay;
-        }
-      } else {
+    // Handle day overflow/underflow
+    while (ethDay > 30 && ethMonth <= 12) {
+      ethDay -= 30;
+      ethMonth++;
+      if (ethMonth > 13) {
         ethMonth = 1;
-        ethDay = 1;
+        ethYear++;
       }
-    } else {
-      // January to August (Ethiopian months 5-12)
-      if (month == 1) {
-        ethMonth = 5; // ጥር
-        ethDay = day + 21;
-        if (ethDay > 30) {
-          ethMonth = 6;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 2) {
-        ethMonth = 6; // የካቲት
-        ethDay = day + 21;
-        if (ethDay > 30) {
-          ethMonth = 7;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 3) {
-        ethMonth = 7; // መጋቢት
-        ethDay = day + 19;
-        if (ethDay > 30) {
-          ethMonth = 8;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 4) {
-        ethMonth = 8; // ሚያዝያ
-        ethDay = day + 21;
-        if (ethDay > 30) {
-          ethMonth = 9;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 5) {
-        ethMonth = 9; // ግንቦት
-        ethDay = day + 21;
-        if (ethDay > 30) {
-          ethMonth = 10;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 6) {
-        ethMonth = 10; // ሰኔ
-        ethDay = day + 22;
-        if (ethDay > 30) {
-          ethMonth = 11;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 7) {
-        ethMonth = 11; // ሐምሌ
-        ethDay = day + 22;
-        if (ethDay > 30) {
-          ethMonth = 12;
-          ethDay = ethDay - 30;
-        }
-      } else if (month == 8) {
-        ethMonth = 12; // ነሐሴ
-        ethDay = day + 23;
-        if (ethDay > 30) {
-          ethMonth = 13;
-          ethDay = ethDay - 30;
-        }
-      } else {
-        ethMonth = 1;
-        ethDay = 1;
+    }
+    
+    while (ethDay > 6 && ethMonth == 13) {
+      ethDay -= 6;
+      ethMonth = 1;
+      ethYear++;
+    }
+    
+    while (ethDay < 1) {
+      ethMonth--;
+      if (ethMonth < 1) {
+        ethMonth = 13;
+        ethYear--;
       }
+      ethDay += (ethMonth == 13) ? 6 : 30;
     }
     
     // Ensure valid ranges
