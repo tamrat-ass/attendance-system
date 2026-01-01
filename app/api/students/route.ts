@@ -90,7 +90,7 @@ export async function GET(req: Request) {
   }
 }
 
-// CREATE STUDENT
+// CREATE STUDENT - Enhanced Duplicate Validation v2026010113
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -126,30 +126,57 @@ export async function POST(req: Request) {
       );
     }
 
-    // ✅ CHECK FOR DUPLICATE STUDENTS - Prevent redundant registration
+    // ✅ CHECK FOR DUPLICATE STUDENTS - Enhanced validation (v2026010113)
     console.log('🔍 Checking for duplicate student:', full_name.trim(), phone.trim());
     
-    const [existingStudent]: any = await db.query(
-      "SELECT id, full_name, phone, class, gender, email, created_at FROM students WHERE full_name = ? AND phone = ?",
-      [full_name.trim(), phone.trim()]
+    // Check for duplicate by name
+    const [existingByName]: any = await db.query(
+      "SELECT id, full_name, phone, class, gender, email FROM students WHERE full_name = ?",
+      [full_name.trim()]
     );
 
-    if (existingStudent && existingStudent.length > 0) {
-      const existing = existingStudent[0];
-      console.log('❌ DUPLICATE FOUND - Student already exists:', existing.full_name, '(ID:', existing.id, ')');
+    if (existingByName && existingByName.length > 0) {
+      const existing = existingByName[0];
+      console.log('❌ DUPLICATE NAME FOUND - Student with same name already exists:', existing.full_name, '(ID:', existing.id, ')');
       
       return NextResponse.json(
         { 
-          message: "Student already exists in the system",
-          error: "DUPLICATE_STUDENT",
+          message: `Student with name "${full_name}" already exists in the system`,
+          error: "DUPLICATE_NAME",
           existingStudent: {
             id: existing.id,
             full_name: existing.full_name,
             phone: existing.phone,
             class: existing.class,
             gender: existing.gender,
-            email: existing.email,
-            created_at: existing.created_at
+            email: existing.email
+          }
+        },
+        { status: 409 } // 409 Conflict status code for duplicates
+      );
+    }
+
+    // Check for duplicate by phone number
+    const [existingByPhone]: any = await db.query(
+      "SELECT id, full_name, phone, class, gender, email FROM students WHERE phone = ?",
+      [phone.trim()]
+    );
+
+    if (existingByPhone && existingByPhone.length > 0) {
+      const existing = existingByPhone[0];
+      console.log('❌ DUPLICATE PHONE FOUND - Student with same phone already exists:', existing.phone, '(Name:', existing.full_name, ')');
+      
+      return NextResponse.json(
+        { 
+          message: `Student with phone number "${phone}" already exists in the system`,
+          error: "DUPLICATE_PHONE",
+          existingStudent: {
+            id: existing.id,
+            full_name: existing.full_name,
+            phone: existing.phone,
+            class: existing.class,
+            gender: existing.gender,
+            email: existing.email
           }
         },
         { status: 409 } // 409 Conflict status code for duplicates
@@ -166,7 +193,8 @@ export async function POST(req: Request) {
     const tempQrData = {
       full_name: full_name,
       class: studentClass,
-      phone: phone
+      phone: phone,
+      gender: finalGender // Add gender to initial QR data too
     };
     
     // Insert student and get the ID
@@ -229,6 +257,7 @@ export async function POST(req: Request) {
           full_name: full_name,
           class: studentClass,
           phone: phone,
+          gender: finalGender, // Add gender to QR code data
           timestamp: Date.now(),
           token: generateSecureToken(studentId, full_name, phone)
         };
