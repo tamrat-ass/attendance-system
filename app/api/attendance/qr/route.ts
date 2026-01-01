@@ -206,11 +206,60 @@ function addQRTokenToRegistrationEmail() {
 
 // Helper function to get current Ethiopian date
 function getCurrentEthiopianDate(): string {
-  // This should match your Ethiopian date conversion logic
-  // For now, using a simple format - you should implement proper Ethiopian calendar conversion
+  // Use the corrected Ethiopian date conversion
   const now = new Date();
-  const year = now.getFullYear() - 7; // Approximate Ethiopian year
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  const day = now.getDate().toString().padStart(2, '0');
+  const ethDate = gregorianToSimpleEthiopianAccurate(now);
+  const year = ethDate.year.toString().padStart(4, '0');
+  const month = ethDate.month.toString().padStart(2, '0');
+  const day = ethDate.day.toString().padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+// Accurate Gregorian to Ethiopian conversion (same as in lib/simple-ethiopian-date.ts)
+function gregorianToSimpleEthiopianAccurate(date: Date): { year: number; month: number; day: number } {
+  // Reference point: January 1, 2026 = 23 ታኅሳስ 2018
+  const referenceGregorian = new Date(2026, 0, 1); // January 1, 2026
+  const referenceEthiopian = { year: 2018, month: 4, day: 23 }; // 23 ታኅሳስ 2018
+  
+  // Calculate days difference from reference point
+  const daysDiff = Math.floor((date.getTime() - referenceGregorian.getTime()) / (1000 * 60 * 60 * 24));
+  
+  // Start from reference Ethiopian date
+  let ethYear = referenceEthiopian.year;
+  let ethMonth = referenceEthiopian.month;
+  let ethDay = referenceEthiopian.day + daysDiff;
+  
+  // Handle day overflow/underflow
+  while (ethDay > 30 && ethMonth <= 12) {
+    ethDay -= 30;
+    ethMonth++;
+    if (ethMonth > 13) {
+      ethMonth = 1;
+      ethYear++;
+    }
+  }
+  
+  while (ethDay > 6 && ethMonth === 13) {
+    ethDay -= 6;
+    ethMonth = 1;
+    ethYear++;
+  }
+  
+  while (ethDay < 1) {
+    ethMonth--;
+    if (ethMonth < 1) {
+      ethMonth = 13;
+      ethYear--;
+    }
+    ethDay += (ethMonth === 13) ? 6 : 30;
+  }
+  
+  // Ensure valid ranges
+  if (ethMonth < 1) ethMonth = 1;
+  if (ethMonth > 13) ethMonth = 13;
+  if (ethDay < 1) ethDay = 1;
+  if (ethMonth === 13 && ethDay > 6) ethDay = 6; // Pagumen max 6 days
+  if (ethMonth !== 13 && ethDay > 30) ethDay = 30; // Other months max 30 days
+  
+  return { year: ethYear, month: ethMonth, day: ethDay };
 }

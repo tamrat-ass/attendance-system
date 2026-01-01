@@ -243,7 +243,7 @@ export async function POST(req: Request) {
           const encodedText = encodeURIComponent(qrText);
           qrCodeImage = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&color=000000&data=${encodedText}`;
           console.log(`📧 QR code URL generated: ${qrCodeImage}`);
-        } catch (qrError) {
+        } catch (qrError: any) {
           console.log(`⚠️ QR code generation failed: ${qrError.message}`);
           // Continue without QR image - email will still work
         }
@@ -369,7 +369,7 @@ export async function POST(req: Request) {
       } else {
         console.log(`⚠️ Email not configured - SMTP credentials missing`);
       }
-    } catch (emailError) {
+    } catch (emailError: any) {
       console.log(`⚠️ Email failed but student created: ${emailError}`);
       console.error('Full email error:', emailError);
       

@@ -242,8 +242,8 @@ export default function Reports() {
           'የሚያገለግሉበት ክፍል',
           'ስልክ',
           'ጠቅላላ የጥናት ቀናት',
-          'የተኘበት ቀን',
-          'የቀረበት ቀን', 
+          'የተኙበት ቀን',
+          'የቀሩበት ቀን', 
           'ዘግይቶ የመጣበት',
           'ፈቃድ የተጠየቀበት',
           'ጠቅላላ የተገኙበት ቀናት',
@@ -251,7 +251,7 @@ export default function Reports() {
         ]
       ];
 
-      // Add student data rows
+      // Add student data rows with correct mapping
       stats.studentStats.forEach(student => {
         const totalAttendedDays = student.present + student.permission;
         reportData.push([
@@ -260,10 +260,10 @@ export default function Reports() {
           student.class,
           student.phone,
           totalStudyDays.toString(),
-          student.absent.toString(),
-          student.present.toString(),
-          student.late.toString(),
-          student.permission.toString(),
+          student.present.toString(),    // የተኙበት ቀን - present (day attended)
+          student.absent.toString(),     // የቀሩበት ቀን - absent (day missed)
+          student.late.toString(),       // ዘግይቶ የመጣበት - late
+          student.permission.toString(), // ፈቃድ የተጠየቀበት - permission
           totalAttendedDays.toString(),
           `${student.attendanceRate}%`
         ]);
@@ -280,8 +280,8 @@ export default function Reports() {
         { width: 20 }, // የሚያገለግሉበት ክፍል
         { width: 15 }, // ስልክ
         { width: 18 }, // ጠቅላላ የጥናት ቀናት
-        { width: 15 }, // የተኘበት ቀን
-        { width: 15 }, // የቀረበት ቀን
+        { width: 15 }, // የተኙበት ቀን
+        { width: 15 }, // የቀሩበት ቀን
         { width: 18 }, // ዘግይቶ የመጣበት
         { width: 20 }, // ፈቃድ የተጠየቀበት
         { width: 22 }, // ጠቅላላ የተገኙበት ቀናት
@@ -389,8 +389,8 @@ export default function Reports() {
         'የሚያገለግሉበት ክፍል': student.class,
         'ስልክ': student.phone,
         'ጠቅላላ የጥናት ቀናት': totalStudyDays,
-        'የተኘበት ቀን': student.absent,
-        'የቀረበት ቀን': student.present,
+        'የተኙበት ቀን': student.present,        // present (day attended)
+        'የቀሩበት ቀን': student.absent,         // absent (day missed)
         'ዘግይቶ የመጣበት': student.late,
         'ፈቃድ የተጠየቀበት': student.permission,
         'ጠቅላላ የተገኙበት ቀናት': totalAttendedDays,
