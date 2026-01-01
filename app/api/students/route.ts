@@ -141,7 +141,7 @@ export async function POST(req: Request) {
       
       return NextResponse.json(
         { 
-          message: `Student with name "${full_name}" already exists in the system`,
+          message: "Student already exists",
           error: "DUPLICATE_NAME",
           existingStudent: {
             id: existing.id,
@@ -168,7 +168,7 @@ export async function POST(req: Request) {
       
       return NextResponse.json(
         { 
-          message: `Student with phone number "${phone}" already exists in the system`,
+          message: "Student already exists",
           error: "DUPLICATE_PHONE",
           existingStudent: {
             id: existing.id,

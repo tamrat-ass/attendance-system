@@ -309,6 +309,24 @@ class ApiService {
           // API returns success message, not student object
           // Return the student with a generated ID
           return student.copyWith(id: DateTime.now().millisecondsSinceEpoch);
+        } else if (response.statusCode == 409) {
+          // Handle duplicate student error - don't retry, throw immediately
+          print('❌ Duplicate student detected - Status 409');
+          try {
+            final error = jsonDecode(response.body);
+            final errorMessage = error['message'] ?? 'Student already exists';
+            final errorType = error['error'] ?? 'DUPLICATE_STUDENT';
+            print('❌ Duplicate error type: $errorType');
+            print('❌ Duplicate error message: $errorMessage');
+            
+            // Provide simple error message
+            String specificMessage = 'Student already exists';
+            
+            throw Exception(specificMessage);
+          } catch (parseError) {
+            print('❌ Failed to parse duplicate error: $parseError');
+            throw Exception('Student already exists in the system');
+          }
         } else {
           print('❌ HTTP Error ${response.statusCode}');
           print('❌ Response body: ${response.body}');
@@ -326,6 +344,18 @@ class ApiService {
       } catch (e) {
         retryCount++;
         print('⚠️ Attempt $retryCount failed: $e');
+        
+        // Don't retry on duplicate errors, validation errors, or client errors (4xx)
+        if (e.toString().contains('already exists') || 
+            e.toString().contains('duplicate') ||
+            e.toString().contains('DUPLICATE') ||
+            e.toString().contains('Student with') ||
+            (e.toString().contains('Exception:') && 
+             (e.toString().contains('name already exists') || 
+              e.toString().contains('phone number already exists')))) {
+          print('❌ Duplicate/validation error - not retrying');
+          throw e;
+        }
         
         if (retryCount >= maxRetries) {
           if (e.toString().contains('TimeoutException')) {
@@ -363,6 +393,10 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         return Student.fromJson(data['data']);
+      } else if (response.statusCode == 409) {
+        // Handle duplicate student error
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Student already exists');
       } else {
         final error = jsonDecode(response.body);
         throw Exception(error['message'] ?? 'Failed to update student');
