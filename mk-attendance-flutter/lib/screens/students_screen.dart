@@ -21,6 +21,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
   // DIRECT DATABASE VARIABLES - NO PROVIDERS!
   List<Map<String, dynamic>> _realStudents = [];
   List<String> _classes = [];
+  Map<int, Map<String, dynamic>> _todayAttendance = {}; // Store today's attendance by student ID
   bool _isLoading = false;
   String? _error;
 
@@ -40,7 +41,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
     try {
       print('🔥 STUDENTS SCREEN: Loading students and classes from database...');
       
-      // Load students and classes in parallel
+      // Load students, classes, and today's attendance in parallel
       final studentsResponse = http.get(
         Uri.parse('https://mk-attendance.vercel.app/api/students'),
         headers: {
@@ -57,9 +58,12 @@ class _StudentsScreenState extends State<StudentsScreen> {
         },
       );
 
-      final responses = await Future.wait([studentsResponse, classesResponse]);
-      final studentResp = responses[0];
-      final classResp = responses[1];
+      // Load today's attendance data
+      final attendanceResponse = _loadTodayAttendance();
+
+      final responses = await Future.wait([studentsResponse, classesResponse, attendanceResponse]);
+      final studentResp = responses[0] as http.Response;
+      final classResp = responses[1] as http.Response;
 
       print('🔥 STUDENTS SCREEN: Students response ${studentResp.statusCode}');
       print('🔥 STUDENTS SCREEN: Classes response ${classResp.statusCode}');
@@ -114,6 +118,49 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
   }
 
+  // LOAD TODAY'S ATTENDANCE DATA
+  Future<void> _loadTodayAttendance() async {
+    try {
+      // Get today's date in Ethiopian format for the API
+      final today = DateTime.now();
+      final ethiopianDate = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      
+      print('🔥 STUDENTS SCREEN: Loading attendance for date: $ethiopianDate');
+      
+      final response = await http.get(
+        Uri.parse('https://mk-attendance.vercel.app/api/attendance?date=$ethiopianDate'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final attendanceList = List<Map<String, dynamic>>.from(data['data'] ?? []);
+        
+        // Convert to map by student ID for quick lookup
+        final attendanceMap = <int, Map<String, dynamic>>{};
+        for (final attendance in attendanceList) {
+          final studentId = attendance['student_id'];
+          if (studentId != null) {
+            attendanceMap[studentId] = attendance;
+          }
+        }
+        
+        setState(() {
+          _todayAttendance = attendanceMap;
+        });
+        
+        print('🔥 STUDENTS SCREEN: Loaded attendance for ${attendanceMap.length} students');
+      } else {
+        print('🔥 STUDENTS SCREEN: Failed to load attendance: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔥 STUDENTS SCREEN: Error loading attendance: $e');
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -163,6 +210,44 @@ class _StudentsScreenState extends State<StudentsScreen> {
     return sortedClasses;
   }
 
+  // Get attendance status display info
+  Map<String, dynamic>? _getAttendanceStatusInfo(int studentId) {
+    final attendance = _todayAttendance[studentId];
+    if (attendance == null) {
+      return null; // Don't show any badge if no attendance
+    }
+
+    final status = attendance['status']?.toString().toLowerCase() ?? '';
+    switch (status) {
+      case 'present':
+        return {
+          'text': 'Present',
+          'color': Colors.green,
+          'icon': Icons.check_circle,
+        };
+      case 'absent':
+        return {
+          'text': 'Absent',
+          'color': Colors.red,
+          'icon': Icons.cancel,
+        };
+      case 'late':
+        return {
+          'text': 'Late',
+          'color': Colors.orange,
+          'icon': Icons.access_time,
+        };
+      case 'permission':
+        return {
+          'text': 'Permission',
+          'color': Colors.blue,
+          'icon': Icons.assignment_turned_in,
+        };
+      default:
+        return null; // Don't show badge for unknown status
+    }
+  }
+
   void _showAddStudentDialog() {
     showDialog(
       context: context,
@@ -177,6 +262,7 @@ class _StudentsScreenState extends State<StudentsScreen> {
       phone: studentData['phone'] ?? '',
       className: studentData['class'] ?? '',
       gender: studentData['gender'] ?? 'Male',
+      email: studentData['email'] ?? '', // Add email field
     );
     
     showDialog(
@@ -315,7 +401,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
     }
     
     return RefreshIndicator(
-      onRefresh: _loadRealStudentsDirectly,
+      onRefresh: () async {
+        await _loadRealStudentsDirectly();
+        await _loadTodayAttendance();
+      },
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
@@ -327,6 +416,10 @@ class _StudentsScreenState extends State<StudentsScreen> {
           final className = student['class']?.toString() ?? 'No class';
           final gender = student['gender']?.toString() ?? '';
           final id = student['id']?.toString() ?? '';
+          final studentId = student['id'] as int? ?? 0;
+          
+          // Get attendance status info
+          final attendanceInfo = _getAttendanceStatusInfo(studentId);
           
           return Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -341,9 +434,48 @@ class _StudentsScreenState extends State<StudentsScreen> {
                   ),
                 ),
               ),
-              title: Text(
-                name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  // Attendance Status Badge - only show if attendance exists
+                  if (attendanceInfo != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: attendanceInfo['color'].withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: attendanceInfo['color'].withOpacity(0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            attendanceInfo['icon'],
+                            size: 14,
+                            color: attendanceInfo['color'],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            attendanceInfo['text'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: attendanceInfo['color'],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,9 +1,10 @@
-QR Code Size Fix Deployment - Dec 18, 2024
+DUPLICATE_VALIDATION_FIX_v2026010113 - Enhanced duplicate validation for students
+
 Current Settings:
-- QR Image: 120x120 pixels
-- Container: 300px width, 200px height
-- Display: 90px (30% of container)
-- Mobile: 80px with responsive CSS
-- Padding: 25px around QR code
+- Separate validation for student names and phone numbers
+- DUPLICATE_NAME error for name conflicts
+- DUPLICATE_PHONE error for phone conflicts  
+- Enhanced Flutter error handling for 409 status codes
+- Proper duplicate prevention in mobile app
 
 This file is created to trigger a new Vercel deployment.

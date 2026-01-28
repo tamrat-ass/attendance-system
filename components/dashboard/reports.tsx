@@ -164,7 +164,7 @@ export default function Reports() {
       const absent = records.filter(r => r.status === 'absent').length;
       const late = records.filter(r => r.status === 'late').length;
       const permission = records.filter(r => r.status === 'permission').length;
-      const attendanceRate = records.length > 0 ? ((present / records.length) * 100).toFixed(1) : '0';
+      const attendanceRate = records.length > 0 ? (((present + permission) / records.length) * 100).toFixed(1) : '0';
 
       if (!byClass[student.class]) {
         byClass[student.class] = { present: 0, absent: 0, total: 0 };

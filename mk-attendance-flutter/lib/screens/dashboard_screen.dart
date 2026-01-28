@@ -321,178 +321,225 @@ class _HomeScreen extends StatelessWidget {
           await Future.delayed(const Duration(milliseconds: 500));
           // You can add specific refresh logic here if needed
         },
-        child: Padding(
-          padding: const EdgeInsets.all(12), // Reduced from 16
-          child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Welcome Card - Made smaller
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12), // Reduced from 20
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 25,
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        backgroundImage: const AssetImage('assets/images/apple-icon.png'),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Calculate responsive spacing based on screen height
+            final screenHeight = constraints.maxHeight;
+            final isSmallScreen = screenHeight < 600;
+            final padding = isSmallScreen ? 8.0 : 12.0;
+            final cardPadding = isSmallScreen ? 8.0 : 12.0;
+            final spacing = isSmallScreen ? 8.0 : 12.0;
+            
+            return SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.all(padding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Welcome Card - Responsive sizing
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(cardPadding),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppColors.primary, AppColors.primaryDark],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome back,',
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: isSmallScreen ? 20 : 25,
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                backgroundImage: const AssetImage('assets/images/apple-icon.png'),
+                              ),
+                              SizedBox(width: isSmallScreen ? 16 : 24),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Welcome back,',
+                                      style: TextStyle(
+                                        color: Colors.white.withOpacity(0.9),
+                                        fontSize: isSmallScreen ? 12 : 14,
+                                      ),
+                                    ),
+                                    Text(
+                                      user?.fullName ?? 'User',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isSmallScreen ? 16 : 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: spacing),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: isSmallScreen ? 8 : 12, 
+                              vertical: isSmallScreen ? 4 : 6
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${user?.role?.toUpperCase() ?? 'USER'} ACCESS',
                               style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 14,
+                                color: Colors.white,
+                                fontSize: isSmallScreen ? 10 : 12,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            Text(
-                              user?.fullName ?? 'User',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    SizedBox(height: spacing),
+                    
+                    // Quick Actions Header
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.flash_on,
+                          color: AppColors.primaryDark,
+                          size: isSmallScreen ? 20 : 24,
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Quick Actions',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryDark,
+                              fontSize: isSmallScreen ? 16 : 20,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: spacing),
+                    
+                    // Quick Actions Grid - Responsive
+                    LayoutBuilder(
+                      builder: (context, gridConstraints) {
+                        // Calculate optimal height between 130-150px
+                        final cardWidth = (gridConstraints.maxWidth - spacing) / 2;
+                        final optimalHeight = isSmallScreen ? 130.0 : 150.0; // Adjusted to 130-150 range
+                        final aspectRatio = cardWidth / optimalHeight;
+                        
+                        return GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: spacing,
+                          mainAxisSpacing: spacing,
+                          childAspectRatio: aspectRatio.clamp(0.95, 1.7), // Adjusted for 130-150 height
+                          children: _buildQuickActionCards(context, user?.role),
+                        );
+                      },
+                    ),
+                    
+                    SizedBox(height: spacing),
+                    
+                    // Today's Overview Section
+                    Text(
+                      'Today\'s Overview',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryDark,
+                        fontSize: isSmallScreen ? 16 : 20,
+                      ),
+                    ),
+                    SizedBox(height: spacing * 0.75),
+                    
+                    // Overview section - Responsive
+                    Container(
+                      padding: EdgeInsets.all(cardPadding),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).shadowColor.withOpacity(0.08),
+                            blurRadius: 6,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: IntrinsicHeight(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            Expanded(
+                              child: _buildCompactOverviewItem(
+                                Icons.today,
+                                CorrectEthiopianDateUtils.formatEthiopianDate(
+                                  CorrectEthiopianDateUtils.getCurrentEthiopianDate()
+                                ),
+                                AppColors.primary,
+                                isSmallScreen: isSmallScreen,
+                              ),
+                            ),
+                            Container(
+                              width: 1, 
+                              color: Theme.of(context).dividerColor.withOpacity(0.5)
+                            ),
+                            Expanded(
+                              child: _buildCompactOverviewItem(
+                                Icons.access_time,
+                                TimeOfDay.now().format(context),
+                                Colors.blue,
+                                isSmallScreen: isSmallScreen,
+                              ),
+                            ),
+                            Container(
+                              width: 1, 
+                              color: Theme.of(context).dividerColor.withOpacity(0.5)
+                            ),
+                            Expanded(
+                              child: _buildCompactOverviewItem(
+                                Icons.school,
+                                'Active',
+                                Colors.green,
+                                isSmallScreen: isSmallScreen,
                               ),
                             ),
                           ],
                         ),
                       ),
-
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      '${user?.role?.toUpperCase() ?? 'USER'} ACCESS',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16), // Reduced from 24
-            
-            // Quick Actions Header
-            Row(
-              children: [
-                Icon(
-                  Icons.flash_on,
-                  color: AppColors.primaryDark,
-                  size: 24,
+                    
+                    // Add some bottom padding for better scrolling
+                    SizedBox(height: spacing * 2),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'Quick Actions',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primaryDark,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              crossAxisSpacing: 14, // Better spacing for management cards
-              mainAxisSpacing: 14, // Better spacing for management cards
-              childAspectRatio: 1.6, // Optimized for better card visibility
-              children: _buildQuickActionCards(context, user?.role),
-            ),
-            
-            const SizedBox(height: 16), // Reduced from 24
-            
-            // Recent Activity Section
-            Text(
-              'Today\'s Overview',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryDark,
               ),
-            ),
-            const SizedBox(height: 12), // Reduced from 16
-            
-            // Make overview section more compact with horizontal layout
-            Container(
-              padding: const EdgeInsets.all(12), // Reduced from 16
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor, // Theme-aware background
-                borderRadius: BorderRadius.circular(10), // Reduced from 12
-                boxShadow: [
-                  BoxShadow(
-                    color: Theme.of(context).shadowColor.withOpacity(0.08), // Theme-aware shadow
-                    blurRadius: 6, // Reduced from 8
-                    offset: const Offset(0, 1), // Reduced from (0, 2)
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildCompactOverviewItem(
-                    Icons.today,
-                    CorrectEthiopianDateUtils.formatEthiopianDate(CorrectEthiopianDateUtils.getCurrentEthiopianDate()),
-                    AppColors.primary,
-                  ),
-                  Container(
-                    width: 1, 
-                    height: 30, 
-                    color: Theme.of(context).dividerColor.withOpacity(0.5)
-                  ), // Theme-aware vertical divider
-                  _buildCompactOverviewItem(
-                    Icons.access_time,
-                    TimeOfDay.now().format(context),
-                    Colors.blue,
-                  ),
-                  Container(
-                    width: 1, 
-                    height: 30, 
-                    color: Theme.of(context).dividerColor.withOpacity(0.5)
-                  ), // Theme-aware vertical divider
-                  _buildCompactOverviewItem(
-                    Icons.school,
-                    'Active',
-                    Colors.green,
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
-      ),
       ),
     );
   }
@@ -559,82 +606,97 @@ class _HomeScreen extends StatelessWidget {
     // Check if this is a management card for special styling
     bool isManagementCard = title.contains('Manage');
     
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18), // Slightly larger radius
-          border: isManagementCard 
-              ? Border.all(color: color.withOpacity(0.3), width: 1.5)
-              : null,
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(isManagementCard ? 0.2 : 0.15),
-              blurRadius: isManagementCard ? 12 : 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                gradient: isManagementCard 
-                    ? LinearGradient(
-                        colors: [color.withOpacity(0.15), color.withOpacity(0.08)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
-                color: isManagementCard ? null : color.withOpacity(0.1),
-                shape: BoxShape.circle,
-                boxShadow: isManagementCard ? [
-                  BoxShadow(
-                    color: color.withOpacity(0.2),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ] : null,
-              ),
-              child: Icon(
-                icon,
-                size: isManagementCard ? 32 : 28,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: isManagementCard ? 15 : 14,
-                fontWeight: isManagementCard ? FontWeight.w700 : FontWeight.w600,
-                // Use dark blue on white background
-                color: AppColors.darkBlue,
-                height: 1.2,
-              ),
-            ),
-            if (isManagementCard) ...[
-              const SizedBox(height: 4),
-              Container(
-                width: 30,
-                height: 2,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(1),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Determine if we're on a small screen
+        final isSmallScreen = MediaQuery.of(context).size.height < 600;
+        final cardHeight = constraints.maxHeight;
+        final isCompact = cardHeight < 90;
+        
+        return GestureDetector(
+          onTap: onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: EdgeInsets.all(isCompact ? 14 : 18), // Proportional to 130-150 height
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: isManagementCard 
+                  ? Border.all(color: color.withOpacity(0.3), width: 1.5)
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: color.withOpacity(isManagementCard ? 0.2 : 0.15),
+                  blurRadius: isManagementCard ? 12 : 8,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-            ],
-          ],
-        ),
-      ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  flex: 3, // Keep good proportion for icon area
+                  child: Container(
+                    padding: EdgeInsets.all(isCompact ? 14 : 18), // Proportional padding
+                    decoration: BoxDecoration(
+                      gradient: isManagementCard 
+                          ? LinearGradient(
+                              colors: [color.withOpacity(0.15), color.withOpacity(0.08)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      color: isManagementCard ? null : color.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      boxShadow: isManagementCard ? [
+                        BoxShadow(
+                          color: color.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ] : null,
+                    ),
+                    child: Icon(
+                      icon,
+                      size: isCompact ? 30 : (isManagementCard ? 38 : 35), // Proportional to 130-150 height
+                      color: color,
+                    ),
+                  ),
+                ),
+                SizedBox(height: isCompact ? 6 : 10), // Proportional spacing
+                Flexible(
+                  flex: 2, // Good proportion for text area
+                  child: Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: isCompact ? 13 : (isManagementCard ? 16 : 15), // Proportional font sizes
+                      fontWeight: isManagementCard ? FontWeight.w700 : FontWeight.w600,
+                      color: AppColors.darkBlue,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                if (isManagementCard && !isCompact) ...[
+                  const SizedBox(height: 6), // Proportional spacing
+                  Container(
+                    width: 32, // Proportional width
+                    height: 3, // Keep accent line visible
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -750,42 +812,46 @@ class _HomeScreen extends StatelessWidget {
   Widget _buildCompactOverviewItem(
     IconData icon,
     String value,
-    Color color,
-  ) {
+    Color color, {
+    bool isSmallScreen = false,
+  }) {
     return Builder(
       builder: (context) {
-        // Get theme-aware text color
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final textColor = isDark ? Colors.white : AppColors.darkBlue;
         
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6), // Smaller padding
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(6),
+        return Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isSmallScreen ? 4 : 6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: isSmallScreen ? 14 : 16,
+                ),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 16, // Smaller icon
+              SizedBox(height: isSmallScreen ? 2 : 4),
+              Flexible(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 8 : 10,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 10, // Smaller text
-                fontWeight: FontWeight.w600,
-                color: textColor, // Theme-aware text color
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -1690,23 +1756,27 @@ class _AttendanceSummaryDialogState extends State<AttendanceSummaryDialog> {
                         const SizedBox(height: 20),
                         
                         // Beautiful count cards in grid
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.2,
-                          children: [
-                            _buildModernCountCard('Present', _attendanceCounts['present']!, 
-                                Colors.green[400]!, Icons.check_circle_rounded),
-                            _buildModernCountCard('Absent', _attendanceCounts['absent']!, 
-                                Colors.red[400]!, Icons.cancel_rounded),
-                            _buildModernCountCard('Late', _attendanceCounts['late']!, 
-                                Colors.orange[400]!, Icons.access_time_rounded),
-                            _buildModernCountCard('Permission', _attendanceCounts['permission']!, 
-                                Colors.blue[400]!, Icons.verified_user_rounded),
-                          ],
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            return GridView.count(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                              childAspectRatio: 1.3,
+                              children: [
+                                _buildModernCountCard('Present', _attendanceCounts['present']!, 
+                                    Colors.green[400]!, Icons.check_circle_rounded),
+                                _buildModernCountCard('Absent', _attendanceCounts['absent']!, 
+                                    Colors.red[400]!, Icons.cancel_rounded),
+                                _buildModernCountCard('Late', _attendanceCounts['late']!, 
+                                    Colors.orange[400]!, Icons.access_time_rounded),
+                                _buildModernCountCard('Permission', _attendanceCounts['permission']!, 
+                                    Colors.blue[400]!, Icons.verified_user_rounded),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -1778,68 +1848,83 @@ class _AttendanceSummaryDialogState extends State<AttendanceSummaryDialog> {
   }
 
   Widget _buildModernCountCard(String label, int count, Color color, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withOpacity(0.1),
-            color.withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.1),
+                color.withOpacity(0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: color.withOpacity(0.2),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.1),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: color,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Flexible(
+                  child: Text(
+                    count.toString(),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: color,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

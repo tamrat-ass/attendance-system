@@ -291,7 +291,7 @@ class _ReportsScreenFixedState extends State<ReportsScreenFixed> {
       final permissionDays = studentAttendance.where((a) => 
         a['status']?.toString().toLowerCase() == 'permission').length;
       
-      final attendanceRate = totalDays > 0 ? (presentDays * 100.0 / totalDays).toStringAsFixed(1) : '0.0';
+      final attendanceRate = totalDays > 0 ? ((presentDays + permissionDays) * 100.0 / totalDays).toStringAsFixed(1) : '0.0';
 
       studentReports.add({
         'id': studentId,
@@ -400,9 +400,11 @@ class _ReportsScreenFixedState extends State<ReportsScreenFixed> {
       final totalDays = studentAttendance.length;
       final presentDays = studentAttendance.where((a) => 
         a['status']?.toString().toLowerCase() == 'present').length;
+      final permissionDays = studentAttendance.where((a) => 
+        a['status']?.toString().toLowerCase() == 'permission').length;
       final absentDays = studentAttendance.where((a) => 
         a['status']?.toString().toLowerCase() == 'absent').length;
-      final attendanceRate = (presentDays * 100.0 / totalDays);
+      final attendanceRate = ((presentDays + permissionDays) * 100.0 / totalDays);
 
       final studentData = {
         'id': studentId,

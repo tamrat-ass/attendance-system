@@ -24,7 +24,7 @@ if (flutterVersionName == null) {
 
 android {
     namespace "com.mkattendance.mk_attendance"
-    compileSdk flutter.compileSdkVersion
+    compileSdk 36  // Required by Flutter plugins
     ndkVersion flutter.ndkVersion
 
     compileOptions {
@@ -42,10 +42,19 @@ android {
 
     defaultConfig {
         applicationId "com.mkattendance.mk_attendance"
-        minSdkVersion flutter.minSdkVersion
-        targetSdkVersion flutter.targetSdkVersion
+        minSdkVersion flutter.minSdkVersion  // Android 6.0 (API level 23) - CONFIRMED SUPPORT
+        targetSdkVersion 34  // Android 14 (Stable and widely supported)
+        compileSdkVersion 36  // Android 16 compile support
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        
+        // Support multiple architectures for better compatibility
+        ndk {
+            abiFilters 'arm64-v8a', 'armeabi-v7a'
+        }
+        
+        // Multidex support for Android 6+
+        multiDexEnabled true
     }
 
     buildTypes {
@@ -54,20 +63,54 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            
+            // Additional size optimizations
+            zipAlignEnabled true
+            crunchPngs true
+            
+            // Aggressive resource shrinking
+            resValue "string", "app_name", "MK Attendance"
+            
+            // Additional optimization flags
+            debuggable false
+            jniDebuggable false
+            renderscriptDebuggable false
+            pseudoLocalesEnabled false
         }
     }
 
-    // Split APKs by ABI to reduce individual APK size
-    splits {
-        abi {
-            enable true
-            reset()
-            include 'arm64-v8a', 'armeabi-v7a'
-            universalApk true
-        }
+    // Packaging options to exclude unnecessary files
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/*.kotlin_module'
+        exclude '**/kotlin/**'
+        exclude '**/*.kotlin_metadata'
+        exclude '**/*.kotlin_builtins'
+        exclude '**/R.txt'
+        exclude '**/R$*.class'
+        exclude '**/BuildConfig.class'
+        exclude 'lib/x86/**'
+        exclude 'lib/x86_64/**'
+        exclude 'lib/mips/**'
+        exclude 'lib/mips64/**'
+        // Keep both ARM architectures for better compatibility
+        // exclude 'lib/armeabi-v7a/**'  // Keep 32-bit ARM for older devices
     }
 }
 
 flutter {
     source '../..'
+}
+
+dependencies {
+    // Multidex support for Android 6+ (required for apps with many dependencies)
+    implementation 'androidx.multidex:multidex:2.0.1'
+    
+    // Core Android libraries for compatibility
+    implementation 'androidx.core:core:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 }

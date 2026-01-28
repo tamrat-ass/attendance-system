@@ -73,7 +73,8 @@ async function getSummaryReport(startDate?: string | null, endDate?: string | nu
         COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_count,
         COUNT(CASE WHEN a.status = 'permission' THEN 1 END) as permission_count,
         ROUND(
-          (COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / 
+          ((COUNT(CASE WHEN a.status = 'present' THEN 1 END) + 
+            COUNT(CASE WHEN a.status = 'permission' THEN 1 END)) * 100.0 / 
            NULLIF(COUNT(a.id), 0)), 2
         ) as overall_attendance_rate
       FROM students s
@@ -91,8 +92,11 @@ async function getSummaryReport(startDate?: string | null, endDate?: string | nu
         COUNT(a.id) as total_records,
         COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_count,
         COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
+        COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_count,
+        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) as permission_count,
         ROUND(
-          (COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / 
+          ((COUNT(CASE WHEN a.status = 'present' THEN 1 END) + 
+            COUNT(CASE WHEN a.status = 'permission' THEN 1 END)) * 100.0 / 
            NULLIF(COUNT(a.id), 0)), 2
         ) as attendance_rate
       FROM students s
@@ -169,9 +173,14 @@ async function getDetailedReport(startDate?: string | null, endDate?: string | n
         COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_days,
         COUNT(CASE WHEN a.status = 'permission' THEN 1 END) as permission_days,
         ROUND(
-          (COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / 
+          ((COUNT(CASE WHEN a.status = 'present' THEN 1 END) + 
+            COUNT(CASE WHEN a.status = 'permission' THEN 1 END)) * 100.0 / 
            NULLIF(COUNT(a.id), 0)), 2
         ) as attendance_rate,
+        ROUND(
+          (COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / 
+           NULLIF(COUNT(a.id), 0)), 2
+        ) as present_only_rate,
         ROUND(
           ((COUNT(CASE WHEN a.status = 'present' THEN 1 END) + 
             COUNT(CASE WHEN a.status = 'permission' THEN 1 END)) * 100.0 / 
@@ -220,7 +229,10 @@ async function getClassPerformanceReport(startDate?: string | null, endDate?: st
         COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_count,
         COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_count,
         COUNT(CASE WHEN a.status = 'permission' THEN 1 END) as permission_count,
-        ROUND(AVG(CASE WHEN a.status = 'present' THEN 100.0 ELSE 0.0 END), 2) as avg_attendance_rate,
+        ROUND(AVG(CASE 
+          WHEN a.status = 'present' OR a.status = 'permission' THEN 100.0 
+          ELSE 0.0 
+        END), 2) as avg_attendance_rate,
         COUNT(DISTINCT a.date) as days_with_attendance,
         -- Students with perfect attendance
         COUNT(DISTINCT CASE 
@@ -240,7 +252,8 @@ async function getClassPerformanceReport(startDate?: string | null, endDate?: st
           COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_count,
           COUNT(CASE WHEN status = 'late' THEN 1 END) as late_count,
           ROUND(
-            (COUNT(CASE WHEN status = 'present' THEN 1 END) * 100.0 / 
+            ((COUNT(CASE WHEN status = 'present' THEN 1 END) + 
+              COUNT(CASE WHEN status = 'permission' THEN 1 END)) * 100.0 / 
              NULLIF(COUNT(*), 0)), 2
           ) as attendance_rate
         FROM attendance
@@ -287,8 +300,10 @@ async function getStudentAnalyticsReport(startDate?: string | null, endDate?: st
         s.class,
         COUNT(a.id) as total_days,
         COUNT(CASE WHEN a.status = 'present' THEN 1 END) as present_days,
+        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) as permission_days,
         ROUND(
-          (COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / 
+          ((COUNT(CASE WHEN a.status = 'present' THEN 1 END) + 
+            COUNT(CASE WHEN a.status = 'permission' THEN 1 END)) * 100.0 / 
            NULLIF(COUNT(a.id), 0)), 2
         ) as attendance_rate
       FROM students s
@@ -298,7 +313,7 @@ async function getStudentAnalyticsReport(startDate?: string | null, endDate?: st
       ${classFilterSql}
       GROUP BY s.id, s.full_name, s.class
       HAVING COUNT(a.id) >= 5 AND attendance_rate >= 90
-      ORDER BY attendance_rate DESC, present_days DESC
+      ORDER BY attendance_rate DESC, (present_days + permission_days) DESC
       LIMIT 20
     `;
 
@@ -312,8 +327,10 @@ async function getStudentAnalyticsReport(startDate?: string | null, endDate?: st
         COUNT(a.id) as total_days,
         COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as absent_days,
         COUNT(CASE WHEN a.status = 'late' THEN 1 END) as late_days,
+        COUNT(CASE WHEN a.status = 'permission' THEN 1 END) as permission_days,
         ROUND(
-          (COUNT(CASE WHEN a.status = 'present' THEN 1 END) * 100.0 / 
+          ((COUNT(CASE WHEN a.status = 'present' THEN 1 END) + 
+            COUNT(CASE WHEN a.status = 'permission' THEN 1 END)) * 100.0 / 
            NULLIF(COUNT(a.id), 0)), 2
         ) as attendance_rate,
         -- Recent absence streak
@@ -345,7 +362,10 @@ async function getStudentAnalyticsReport(startDate?: string | null, endDate?: st
         s.gender,
         COUNT(DISTINCT s.id) as student_count,
         COUNT(a.id) as total_records,
-        ROUND(AVG(CASE WHEN a.status = 'present' THEN 100.0 ELSE 0.0 END), 2) as avg_attendance_rate,
+        ROUND(AVG(CASE 
+          WHEN a.status = 'present' OR a.status = 'permission' THEN 100.0 
+          ELSE 0.0 
+        END), 2) as avg_attendance_rate,
         COUNT(CASE WHEN a.status = 'late' THEN 1 END) as total_late_instances
       FROM students s
       LEFT JOIN attendance a ON s.id = a.student_id
@@ -392,7 +412,8 @@ async function getAttendanceTrendsReport(startDate?: string | null, endDate?: st
         COUNT(CASE WHEN status = 'permission' THEN 1 END) as permission_count,
         COUNT(*) as total_records,
         ROUND(
-          (COUNT(CASE WHEN status = 'present' THEN 1 END) * 100.0 / 
+          ((COUNT(CASE WHEN status = 'present' THEN 1 END) + 
+            COUNT(CASE WHEN status = 'permission' THEN 1 END)) * 100.0 / 
            NULLIF(COUNT(*), 0)), 2
         ) as daily_attendance_rate
       FROM attendance
@@ -415,7 +436,10 @@ async function getAttendanceTrendsReport(startDate?: string | null, endDate?: st
           WHEN 6 THEN 'Saturday'
         END as day_name,
         COUNT(*) as total_records,
-        ROUND(AVG(CASE WHEN status = 'present' THEN 100.0 ELSE 0.0 END), 2) as avg_attendance_rate,
+        ROUND(AVG(CASE 
+          WHEN status = 'present' OR status = 'permission' THEN 100.0 
+          ELSE 0.0 
+        END), 2) as avg_attendance_rate,
         COUNT(CASE WHEN status = 'late' THEN 1 END) as late_instances
       FROM attendance
       WHERE 1=1 ${dateFilter}

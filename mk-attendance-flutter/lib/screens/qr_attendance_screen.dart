@@ -204,61 +204,65 @@ class _QRAttendanceScreenState extends State<QRAttendanceScreen> {
           ),
         ],
       ),
-      body: Column(
-              children: [
-                // Scanner Area
-                Expanded(
-                  flex: 3,
-                  child: Stack(
-                    children: [
-                      MobileScanner(
-                        controller: controller,
-                        onDetect: _onDetect,
-                      ),
-                      if (!_isScanning)
-                        Container(
-                          color: Colors.black54,
-                          child: const Center(
-                            child: Text(
-                              'Scanning Paused',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return Column(
+            children: [
+              // Scanner Area
+              Expanded(
+                flex: 3,
+                child: Stack(
+                  children: [
+                    MobileScanner(
+                      controller: controller,
+                      onDetect: _onDetect,
+                    ),
+                    if (!_isScanning)
+                      Container(
+                        color: Colors.black54,
+                        child: const Center(
+                          child: Text(
+                            'Scanning Paused',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                      // QR Scanner Overlay
-                      Center(
-                        child: Container(
-                          width: 250,
-                          height: 250,
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: _isScanning ? Colors.green : Colors.grey,
-                              width: 3,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
+                      ),
+                    // QR Scanner Overlay
+                    Center(
+                      child: Container(
+                        width: 250,
+                        height: 250,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: _isScanning ? Colors.green : Colors.grey,
+                            width: 3,
                           ),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                
-                // Instructions
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: AppColors.primary.withOpacity(0.1),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.qr_code_scanner, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Text(
+              ),
+              
+              // Instructions
+              Container(
+                padding: const EdgeInsets.all(12),
+                color: AppColors.primary.withOpacity(0.1),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.qr_code_scanner, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
                             'Scan Student QR Code',
                             style: TextStyle(
                               fontSize: 16,
@@ -266,123 +270,159 @@ class _QRAttendanceScreenState extends State<QRAttendanceScreen> {
                               color: AppColors.primary,
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Point camera at student QR code to mark attendance',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
                         ),
-                        textAlign: TextAlign.center,
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Point camera at student QR code to mark attendance',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Date: ${CorrectEthiopianDateUtils.formatEthiopianDate(CorrectEthiopianDateUtils.getCurrentEthiopianDate())}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Date: ${CorrectEthiopianDateUtils.formatEthiopianDate(CorrectEthiopianDateUtils.getCurrentEthiopianDate())}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[500],
                       ),
-                    ],
-                  ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                
-                // Results List
-                Expanded(
-                  flex: 2,
-                  child: _attendanceResults.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.people_outline, size: 48, color: Colors.grey),
-                              const SizedBox(height: 8),
-                              Text(
-                                'No attendance marked yet',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              
+              // Results List
+              Expanded(
+                flex: 2,
+                child: _attendanceResults.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Today\'s Attendance',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${_scannedStudentIds.length} Present',
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: ListView.builder(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
-                                itemCount: _attendanceResults.length,
-                                itemBuilder: (context, index) {
-                                  final result = _attendanceResults[index];
-                                  return Card(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    child: ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: result.success ? Colors.green : Colors.red,
-                                        child: Icon(
-                                          result.success ? Icons.check : Icons.error,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      title: Text(result.studentName ?? 'Unknown Student'),
-                                      subtitle: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          if (result.studentClass != null)
-                                            Text('Class: ${result.studentClass}'),
-                                          Text(result.message),
-                                          if (result.timestamp != null)
-                                            Text('Time: ${_formatTime(result.timestamp)}'),
-                                        ],
-                                      ),
-                                      trailing: result.success
-                                          ? Icon(Icons.check_circle, color: Colors.green)
-                                          : Icon(Icons.error_outline, color: Colors.red),
-                                      isThreeLine: true,
-                                    ),
-                                  );
-                                },
+                            Icon(Icons.people_outline, size: 48, color: Colors.grey),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No attendance marked yet',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[600],
                               ),
                             ),
                           ],
                         ),
-                ),
-              ],
-            ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Today\'s Attendance',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '${_scannedStudentIds.length} Present',
+                                    style: const TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              itemCount: _attendanceResults.length,
+                              itemBuilder: (context, index) {
+                                final result = _attendanceResults[index];
+                                return Card(
+                                  margin: const EdgeInsets.only(bottom: 6),
+                                  child: ListTile(
+                                    dense: true,
+                                    leading: CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: result.success ? Colors.green : Colors.red,
+                                      child: Icon(
+                                        result.success ? Icons.check : Icons.error,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      result.studentName ?? 'Unknown Student',
+                                      style: const TextStyle(fontSize: 14),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (result.studentClass != null)
+                                          Text(
+                                            'Class: ${result.studentClass}',
+                                            style: const TextStyle(fontSize: 12),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        Text(
+                                          result.message,
+                                          style: const TextStyle(fontSize: 12),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (result.timestamp != null)
+                                          Text(
+                                            'Time: ${_formatTime(result.timestamp)}',
+                                            style: const TextStyle(fontSize: 10),
+                                          ),
+                                      ],
+                                    ),
+                                    trailing: Icon(
+                                      result.success ? Icons.check_circle : Icons.error_outline,
+                                      color: result.success ? Colors.green : Colors.red,
+                                      size: 20,
+                                    ),
+                                    isThreeLine: false,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

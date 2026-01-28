@@ -1,7 +1,7 @@
 name: mk_attendance
 description: MK Attendance Management System - Mobile App
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -61,12 +61,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   
+  # Only include specific assets to reduce size
   assets:
-    - assets/images/
-    - assets/icons/
+    - assets/images/apple-icon.png
+    - assets/images/mk.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: false
   image_path: "assets/images/apple-icon.png"
-  min_sdk_android: 21
+  min_sdk_android: 23  # Android 6.0 for maximum compatibility

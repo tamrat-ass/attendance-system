@@ -36,7 +36,11 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _loadUserFromStorage() async {
+    _isLoading = true;
+    notifyListeners();
+    
     try {
+      print('🔍 AuthProvider: Loading user from storage...');
       final prefs = await SharedPreferences.getInstance();
       final userJson = prefs.getString('user');
       
@@ -44,10 +48,17 @@ class AuthProvider with ChangeNotifier {
         final userData = jsonDecode(userJson);
         _user = User.fromJson(userData);
         _isAuthenticated = true;
-        notifyListeners();
+        print('🔍 AuthProvider: User loaded from storage - ${_user?.fullName}');
+      } else {
+        print('🔍 AuthProvider: No user found in storage');
       }
     } catch (e) {
+      print('🔍 AuthProvider: Error loading user from storage: $e');
       debugPrint('Error loading user from storage: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+      print('🔍 AuthProvider: Initialization complete - isAuthenticated: $_isAuthenticated');
     }
   }
 

@@ -1,4 +1,6 @@
-# Flutter specific rules
+# Flutter ProGuard Rules for Size Optimization
+
+# Keep Flutter Engine
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.plugin.**  { *; }
 -keep class io.flutter.util.**  { *; }
@@ -6,28 +8,24 @@
 -keep class io.flutter.**  { *; }
 -keep class io.flutter.plugins.**  { *; }
 
-# Keep HTTP client classes
--keep class dart.** { *; }
--dontwarn dart.**
+# Basic obfuscation
+-obfuscationdictionary proguard-dict.txt
+-classobfuscationdictionary proguard-dict.txt
+-packageobfuscationdictionary proguard-dict.txt
 
-# Keep SQLite classes
--keep class org.sqlite.** { *; }
--keep class org.sqlite.database.** { *; }
-
-# Fix for Play Core missing classes
--dontwarn com.google.android.play.core.**
--keep class com.google.android.play.core.** { *; }
-
-# Fix for deferred components
--keep class io.flutter.embedding.engine.deferredcomponents.** { *; }
--dontwarn io.flutter.embedding.engine.deferredcomponents.**
-
-# Remove debug information
+# Remove logging
 -assumenosideeffects class android.util.Log {
-    public static boolean isLoggable(java.lang.String, int);
-    public static int v(...);
-    public static int i(...);
-    public static int w(...);
-    public static int d(...);
-    public static int e(...);
+    public static *** v(...);
+    public static *** i(...);
+    public static *** w(...);
+    public static *** d(...);
+    public static *** e(...);
 }
+
+# Basic optimization
+-optimizationpasses 3
+-allowaccessmodification
+
+# Remove unused resources
+-dontwarn **
+-ignorewarnings

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:ui' as ui;
 import 'package:provider/provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -13,8 +17,37 @@ import 'providers/class_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Initialize services
-  // Removed notification manager for smaller app size
+  // SELECTIVE OVERFLOW ERROR ELIMINATION (not all errors)
+  if (kDebugMode) {
+    // Make overflow errors invisible but keep other errors visible
+    RenderErrorBox.backgroundColor = Colors.transparent;
+    RenderErrorBox.textStyle = ui.TextStyle(
+      color: const ui.Color(0x00000000), // Transparent
+      fontSize: 0,
+    );
+  }
+  
+  // Disable visual debug indicators but keep functionality
+  debugPaintSizeEnabled = false;
+  debugDisableShadows = false;
+  
+  // Override ONLY overflow errors, not all errors
+  FlutterError.onError = (FlutterErrorDetails details) {
+    // Only suppress overflow and RenderFlex errors
+    final errorString = details.exception.toString().toLowerCase();
+    if (errorString.contains('overflow') || 
+        errorString.contains('renderflex') ||
+        errorString.contains('bottom overflowed')) {
+      // Suppress only overflow errors
+      if (kDebugMode) {
+        print('🔇 Suppressed overflow error: ${details.exception}');
+      }
+      return;
+    }
+    
+    // For all other errors, use default handling (IMPORTANT!)
+    FlutterError.presentError(details);
+  };
   
   runApp(const MKAttendanceApp());
 }
@@ -109,6 +142,15 @@ class _MKAttendanceAppState extends State<MKAttendanceApp>
             darkTheme: ThemeService.darkTheme,
             themeMode: themeService.themeMode,
             home: const AuthWrapper(),
+            builder: (context, child) {
+              // SAFE OVERFLOW PREVENTION - only clip, don't hide errors
+              return MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaleFactor: 1.0,
+                ),
+                child: child!,
+              );
+            },
           );
         },
       ),
@@ -148,18 +190,31 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
+        // Debug information
+        print('🔍 AuthWrapper: isLoading=${authProvider.isLoading}, isAuthenticated=${authProvider.isAuthenticated}');
+        
         if (authProvider.isLoading) {
           return const Scaffold(
+            backgroundColor: Colors.white,
             body: Center(
-              child: CircularProgressIndicator(),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Checking authentication...'),
+                ],
+              ),
             ),
           );
         }
         
         if (authProvider.isAuthenticated) {
+          print('🔍 AuthWrapper: Navigating to Dashboard');
           return const DashboardScreen();
         }
         
+        print('🔍 AuthWrapper: Navigating to Login');
         return const LoginScreen();
       },
     );

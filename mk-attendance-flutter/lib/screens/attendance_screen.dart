@@ -70,10 +70,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     
     final attendanceProvider = Provider.of<AttendanceProvider>(context, listen: false);
     
-    // If "All Classes" is selected, load attendance for all classes (don't filter by class)
+    // IMPORTANT: Load attendance for ALL students on this date, not just selected class
+    // This ensures that when searching across classes, attendance status is visible
     await attendanceProvider.loadAttendance(
       date: _selectedDate,
-      className: _selectedClass,
+      className: null, // Load for ALL classes to support cross-class search
     );
     
     print('Loaded attendance records: ${attendanceProvider.attendanceRecords.length}');
@@ -1034,9 +1035,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                               onChanged: (value) {
                                 setState(() {
                                   _selectedClass = value;
-                                  _studentStatus.clear();
-                                  _studentNotes.clear();
-                                  _lockedStudents.clear();
+                                  // Don't clear attendance data when changing class
+                                  // This allows search to show attendance across all classes
                                 });
                                 _loadExistingAttendance();
                               },
@@ -1385,20 +1385,56 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                       ),
                                       if (_searchQuery.isNotEmpty) ...[
                                         const SizedBox(height: 2),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            'Class: ${student.className ?? 'Unknown'}',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.primary,
-                                              fontWeight: FontWeight.w500,
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary.withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              child: Text(
+                                                'Class: ${student.className ?? 'Unknown'}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.primary,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
                                             ),
-                                          ),
+                                            const SizedBox(width: 8),
+                                            // Attendance Status Badge for Search Results
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: _getStatusColor(status).withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(10),
+                                                border: Border.all(
+                                                  color: _getStatusColor(status).withOpacity(0.3),
+                                                  width: 1,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    _getStatusIcon(status),
+                                                    size: 12,
+                                                    color: _getStatusColor(status),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    status != null ? '${_getStatusLabel(status)}${isLocked ? ' ✓' : ''}' : 'Not Marked',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: _getStatusColor(status),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                       if (hasDuplicateAttempt) ...[

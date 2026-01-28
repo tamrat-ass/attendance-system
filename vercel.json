@@ -12,5 +12,19 @@
   },
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "ignores": [
+    "mk-attendance-flutter/**",
+    "APK_INSTALL_PACKAGE/**",
+    "attendance_system/**",
+    "*.apk",
+    "*.bat",
+    "*.sql",
+    "*.md",
+    "test-*.js",
+    "test-*.html",
+    "debug-*.js",
+    "fix-*.js",
+    "check-*.js"
+  ]
 }

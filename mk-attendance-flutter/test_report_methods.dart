@@ -101,7 +101,7 @@ Map<String, dynamic> _generateDetailedReport(List<Map<String, dynamic>> students
     final permissionDays = studentAttendance.where((a) => 
       a['status']?.toString().toLowerCase() == 'permission').length;
     
-    final attendanceRate = totalDays > 0 ? (presentDays * 100.0 / totalDays).toStringAsFixed(1) : '0.0';
+    final attendanceRate = totalDays > 0 ? ((presentDays + permissionDays) * 100.0 / totalDays).toStringAsFixed(1) : '0.0';
 
     studentReports.add({
       'id': studentId,
@@ -177,7 +177,7 @@ Map<String, dynamic> _generateStudentAnalyticsReport(List<Map<String, dynamic>> 
     final totalDays = studentAttendance.length;
     final presentDays = studentAttendance.where((a) => 
       a['status']?.toString().toLowerCase() == 'present').length;
-    final attendanceRate = (presentDays * 100.0 / totalDays);
+    final attendanceRate = ((presentDays + permissionDays) * 100.0 / totalDays);
 
     final studentData = {
       'id': studentId,

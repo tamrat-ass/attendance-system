@@ -53,10 +53,10 @@ class QRScannerService {
       // Get current Ethiopian date in API format
       final currentDate = DateConverter.getCurrentEthiopianDb();
       
-      // Mark attendance via QR API
-      final success = await _markQRAttendance(qrString, currentDate);
+      // Mark attendance via QR API with detailed error handling
+      final result = await _markQRAttendanceWithDetails(qrString, currentDate);
 
-      if (success) {
+      if (result['success']) {
         return AttendanceResult(
           success: true,
           message: 'Attendance marked successfully',
@@ -69,7 +69,7 @@ class QRScannerService {
       } else {
         return AttendanceResult(
           success: false,
-          message: 'Failed to mark attendance in database',
+          message: result['message'] ?? 'Failed to mark attendance',
         );
       }
     } catch (e) {
@@ -161,8 +161,8 @@ class QRScannerService {
     _isScanning = false;
   }
 
-  // Helper method to mark attendance via QR API
-  static Future<bool> _markQRAttendance(String qrData, String date) async {
+  // Helper method to mark attendance via QR API with detailed error handling
+  static Future<Map<String, dynamic>> _markQRAttendanceWithDetails(String qrData, String date) async {
     try {
       final response = await http.post(
         Uri.parse('https://mk-attendance.vercel.app/api/attendance/qr'),
@@ -174,11 +174,31 @@ class QRScannerService {
         }),
       );
 
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Attendance marked successfully'};
+      } else if (response.statusCode == 409) {
+        // Attendance already marked
+        return {'success': false, 'message': 'Attendance is already marked'};
+      } else {
+        // Try to parse error message from response
+        try {
+          final errorData = jsonDecode(response.body);
+          final errorMessage = errorData['message'] ?? 'Failed to mark attendance';
+          return {'success': false, 'message': errorMessage};
+        } catch (e) {
+          return {'success': false, 'message': 'Failed to mark attendance'};
+        }
+      }
     } catch (e) {
       print('❌ QR attendance API error: $e');
-      return false;
+      return {'success': false, 'message': 'Network error: Unable to connect to server'};
     }
+  }
+
+  // Helper method to mark attendance via QR API (legacy - kept for compatibility)
+  static Future<bool> _markQRAttendance(String qrData, String date) async {
+    final result = await _markQRAttendanceWithDetails(qrData, date);
+    return result['success'] ?? false;
   }
 }
 

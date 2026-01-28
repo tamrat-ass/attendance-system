@@ -33,6 +33,8 @@ interface AdminReportData {
     total_records: number;
     present_count: number;
     absent_count: number;
+    late_count: number;
+    permission_count: number;
     attendance_rate: number;
   }>;
   trends?: Array<{
@@ -340,7 +342,7 @@ export default function AdminReports() {
                             <div className="text-right">
                               <p className="text-lg font-bold text-green-600">{cls.attendance_rate}%</p>
                               <p className="text-sm text-muted-foreground">
-                                {cls.present_count}P / {cls.absent_count}A
+                                {cls.present_count}P / {cls.late_count}L / {cls.permission_count}Pr / {cls.absent_count}A
                               </p>
                             </div>
                           </div>
